@@ -1,0 +1,19 @@
+{
+  "name": "starchitect",
+  "version": "0.1",
+  "description": "A plugin for transforming PRDs and architecture documentation to technology choices. Rather than jumping from PRD to implementation plan, do research on technology choices prior to forming an implementation plan.",
+  "author": {
+    "name": "Shaheen Gandhi",
+    "url": "https://shaheengandhi.com"
+  },
+  "repository": "https://github.com/visigoth/marketplace",
+  "license": "MIT",
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "keywords": [
+    "workflow",
+    "planning",
+    "research",
+    "architecture"
+  ]
+}

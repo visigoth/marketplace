@@ -1,0 +1,19 @@
+{
+  "name": "marketplace",
+  "owner": {
+    "name": "Shaheen Gandhi"
+  },
+  "metadata": {
+    "description": "Claude Code plugins by Shaheen Gandhi",
+    "version": "0.1.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "starchitect",
+      "source": "./plugins/starchitect",
+      "description": "PRD to architecture — research technology choices and architecture before forming an implementation plan",
+      "version": "0.1"
+    }
+  ]
+}

@@ -23,7 +23,7 @@ plugins/                         # All plugins live here
 
 | Plugin | Description |
 |--------|-------------|
-| `starchitect` | Transforms PRDs into architecture documentation. Bridges the gap between PRD and implementation plan with technology research and architectural analysis. |
+| `starchitect` | Product architecture toolkit. Includes PRD generation (product-architect agent + prd-architect skill) and technology research (tech-plan skill). Bridges the gap from product idea to implementation-ready documentation. |
 
 ## Adding a New Plugin
 

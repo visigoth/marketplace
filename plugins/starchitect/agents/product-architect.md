@@ -23,6 +23,7 @@ description: >
 model: opus
 skills:
   - starchitect:prd-architect
+  - starchitect:prd-feature-breakdown
 color: pink
 ---
 

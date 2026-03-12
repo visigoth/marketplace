@@ -21,7 +21,7 @@ Do NOT skip to writing output. Every proposed feature list and every feature PRD
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Discover inputs** — find parent PRD, architecture docs, existing tech, existing feature PRDs, determine output format
+1. **Discover inputs** — find parent PRD, floorplan, architecture docs, existing tech, existing feature PRDs, determine output format
 2. **Identify features** — analyze PRD items, group into coherent features, present to user for confirmation
 3. **Generate feature PRDs** — produce each feature PRD one at a time, presenting each for review before writing
 4. **Summary & next steps** — write index file, suggest next actions
@@ -37,7 +37,8 @@ Search these locations:
 | Document | Locations to check |
 |----------|--------------------|
 | **PRD** | `docs/prd.md`, `docs/prd.org`, `docs/prd/`, `docs/prds/` |
-| **Architecture** | `docs/architecture.md`, `docs/architecture.org`, `docs/architecture/` |
+| **Floorplan** | `docs/floorplan.md`, `docs/floorplan.org` |
+| **Architecture docs** | `docs/architecture.md`, `docs/architecture.org`, `docs/architecture/` |
 | **Technology choices** | `docs/technology.md`, `docs/technology.org`, `docs/technology/` |
 | **Existing feature PRDs** | `docs/features/` |
 
@@ -92,13 +93,19 @@ Read through the parent PRD and catalog:
 - **User Journeys** (UJ items) — end-to-end user flows
 - **Functional Requirements** (FR items) — specific behaviors
 
+### Use the floorplan to inform grouping
+
+If a floorplan exists, use its component inventory (COMP identifiers), block diagrams, and data flows to inform feature boundaries. Components that are tightly connected in the block diagram (BD) or share data flows (DF) are strong candidates for belonging to the same feature. The floorplan's swim-lane diagrams (SL) reveal which components collaborate on specific user journeys — these collaborations often map to feature boundaries.
+
+If no floorplan exists, proceed by inferring structure from the PRD alone, but note to the user: "No floorplan found. Feature boundaries would be more precise with a floorplan. Consider running the floorplan skill first."
+
 ### Group into coherent features
 
 Cluster related PRD items into features based on:
 
 - **Bounded scope**: each feature should be independently implementable
-- **Cohesion**: items that share data, UI, or domain concepts belong together
-- **Minimal coupling**: features should have clear interface boundaries, not deep entanglement
+- **Cohesion**: items that share data, UI, or domain concepts belong together — the floorplan's data flows (DF) and block diagram clusters are strong signals here
+- **Minimal coupling**: features should have clear interface boundaries, not deep entanglement — the floorplan's component edges show where coupling exists
 - **Size**: each feature should be small enough to plan and implement as a unit — if it feels like it needs its own breakdown, flag it as "may need recursive decomposition"
 
 ### Present the proposed feature list
@@ -163,6 +170,7 @@ State which parent PRD items this feature covers:
 - What this feature exposes to other features (APIs, events, shared state)
 - What this feature consumes from other features
 - How this feature connects to the rest of the system
+- If a floorplan exists, reference the relevant COMP identifiers and cite the block diagram edges (BD) and data flows (DF) that cross this feature's boundary
 
 #### Dependencies
 
@@ -270,6 +278,7 @@ After writing the index, tell the user:
 
 - "Your PRD has been broken into feature-level PRDs. Next steps you might consider:"
   - For large features flagged during Phase 1: run this skill again on that feature PRD for recursive decomposition
+  - If no floorplan exists, run the floorplan skill to define the architectural structure before implementation
   - Run the tech-plan skill to make technology decisions
   - Begin implementation planning for features with no dependencies first
   - Review the dependency graph to identify parallelizable work

@@ -1,16 +1,16 @@
 ---
 name: starchitect:tech-plan
 description: >
-  Go from PRD and architecture to documented technology choices. Scans the repo for existing tech,
-  analyzes the PRD for components needing decisions, researches current options,
+  Go from PRD and floorplan to documented technology choices. Scans the repo for existing tech,
+  uses the floorplan's component inventory to identify what needs decisions, researches current options,
   and walks through choices interactively. Triggers: "tech plan", "technology choices",
   "what tech should we use", or when a PRD is ready for technology decisions.
 user-invocable: true
 ---
 
-# Tech Plan: PRD (and Architecture) to Technology Choices
+# Tech Plan: PRD and Floorplan to Technology Choices
 
-Go from a PRD (and associated architecture documents) to a documented set of technology decisions. This skill walks through each component or workload, researches current options, and produces a `docs/technology.md` (or `.org`) file recording every choice with rationale.
+Go from a PRD and architectural floorplan to a documented set of technology decisions. The floorplan's component inventory (COMP identifiers) defines what needs technology choices. This skill walks through each component or workload, researches current options, and produces a `docs/technology.md` (or `.org`) file recording every choice with rationale.
 
 <HARD-GATE>
 Do NOT skip to writing the output document. Every decision must be presented to the user with options and trade-offs, and the user must choose before you record it.
@@ -21,7 +21,7 @@ Do NOT skip to writing the output document. Every decision must be presented to 
 You MUST create a task for each of these items and complete them in order:
 
 1. **Detect resume / assess input** — check for existing documents, determine output format
-2. **Discover context** — scan repo for existing tech, load PRD and architecture docs
+2. **Discover context** — scan repo for existing tech, load PRD and floorplan
 3. **Identify decision categories** — present categories to user for confirmation
 4. **Research & decide** — walk through each category interactively, one at a time
 5. **Document & commit** — write technology choices file and commit
@@ -38,7 +38,7 @@ Search these locations:
 |----------|--------------------|
 | **Existing tech choices** | `docs/technology.md`, `docs/technology.org`, `docs/technology/` |
 | **PRD** | `docs/prd.md`, `docs/prd.org`, `docs/prd/`, `docs/prds/` |
-| **Architecture** | `docs/architecture.md`, `docs/architecture.org`, `docs/architecture/` |
+| **Floorplan** | `docs/floorplan.md`, `docs/floorplan.org` |
 
 Use Glob to check all locations. Read any documents found.
 
@@ -92,10 +92,10 @@ Summarize what you found: "I see you're using [technologies]. Should we carry th
 
 Wait for user confirmation before proceeding.
 
-### Analyze PRD for components
+### Identify components from floorplan
 
-- Read the PRD and identify distinct components, services, or workloads
-- If an architecture doc exists, use it to identify components; otherwise infer from the PRD
+- If a floorplan exists, use its component inventory (COMP identifiers) as the definitive list of components needing technology decisions. The floorplan's components have already been validated against the PRD — do not re-derive them.
+- If no floorplan exists, tell the user: "I couldn't find a floorplan. I recommend running the floorplan skill first to define the component inventory. I can infer components from the PRD, but the floorplan provides a validated, complete component list." Then ask the user whether to proceed by inferring from the PRD or to stop and create a floorplan first.
 - List the components that need technology decisions
 
 ---
@@ -291,5 +291,6 @@ Decisions identified but not yet made, with notes on when they should be revisit
 After committing, suggest the user's next steps:
 - "Your technology choices are documented. Next steps you might consider:"
   - Review with your team
-  - Create an architecture document if one doesn't exist
+  - If no floorplan exists, run the floorplan skill to define the architectural structure
+  - Run the prd-feature-breakdown skill to decompose the PRD into feature-level PRDs
   - Create an implementation plan based on these choices

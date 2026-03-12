@@ -23,7 +23,7 @@ plugins/                         # All plugins live here
 
 | Plugin | Description |
 |--------|-------------|
-| `starchitect` | Product architecture toolkit. Includes PRD generation (product-architect agent + prd-architect skill) and technology research (tech-plan skill). Bridges the gap from product idea to implementation-ready documentation. |
+| `starchitect` | Product architecture toolkit. Includes PRD generation (product-architect agent + prd-create skill) and technology research (tech-plan skill). Bridges the gap from product idea to implementation-ready documentation. |
 
 ## Adding a New Plugin
 

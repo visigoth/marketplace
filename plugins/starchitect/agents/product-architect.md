@@ -22,7 +22,7 @@ description: >
     (Spawn the product-architect agent to interview the user and generate a complete PRD.)
 model: opus
 skills:
-  - starchitect:prd-architect
+  - starchitect:prd-create
   - starchitect:prd-feature-breakdown
 color: pink
 ---

@@ -45,7 +45,7 @@ Use Glob to check all locations. Read any documents found.
 
 ### If no PRD is found:
 
-- Tell the user: "I couldn't find a PRD. I recommend starting with the prd-architect skill to create one first."
+- Tell the user: "I couldn't find a PRD. I recommend starting with the prd-create skill to create one first."
 - Stop here unless the user provides a PRD or points to one
 
 ### Scan for existing technology

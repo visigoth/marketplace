@@ -1,5 +1,5 @@
 ---
-name: starchitect:prd-architect
+name: starchitect:prd-create
 description: >
   Generate a comprehensive Product Requirements Document (PRD) in org-mode format.
   Use when the user needs to create, draft, or refine a PRD. Triggers: "write a PRD",

@@ -153,14 +153,14 @@ Produce three kinds of diagrams, each at two levels of detail. Use Mermaid synta
 
 ### Diagram Kind 1: Block Diagrams (BD)
 
-Block diagrams show components as blocks and directed arrows for communication channels between them.
+Block diagrams show components as blocks and directed arrows indicating that communication exists between them.
 
 #### Level 1: System Block Diagram (BD1)
 
 A single diagram showing all components (COMP references) and their connections.
 
 - Each node is a component from the inventory, labeled with its COMP identifier and name
-- Each directed edge is labeled with the communication mechanism (HTTP, gRPC, events, WebSocket, shared DB, SDK call, etc.)
+- Each directed edge indicates that the source component communicates with the target. Label edges with the *nature* of the communication (e.g., "queries", "authenticates", "notifies", "reads/writes", "subscribes"), NOT with protocol choices (HTTP, gRPC, etc.). Protocol decisions belong in the contracts skill.
 - Group related components visually using Mermaid subgraphs where natural clusters exist
 - Use Mermaid `graph` or `flowchart` syntax
 
@@ -179,10 +179,10 @@ graph LR
     end
     COMP5[(COMP5: User DB)]
 
-    COMP1 -->|HTTPS| COMP3
-    COMP2 -->|HTTPS| COMP3
-    COMP3 -->|gRPC| COMP4
-    COMP4 -->|SQL| COMP5
+    COMP1 -->|requests| COMP3
+    COMP2 -->|requests| COMP3
+    COMP3 -->|authenticates| COMP4
+    COMP4 -->|reads/writes| COMP5
 #+END_SRC
 ```
 
@@ -222,7 +222,7 @@ Swim-lane diagrams show multi-component conversations — the sequence of messag
 
 - Use Mermaid `sequenceDiagram` syntax
 - Each participant is a component (COMP reference) from the inventory
-- Show request/response pairs, async messages, protocol steps, and error responses
+- Show request/response pairs, async messages, and error responses. Describe messages by their *intent* (e.g., "create user", "validate token", "notify order shipped"), not by protocol-level details. Protocol choices belong in the contracts skill.
 - Include timing-relevant details (e.g., "async", "fire-and-forget", "blocking")
 
 **Coverage rules:**

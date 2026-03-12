@@ -21,8 +21,8 @@ Do NOT skip to writing output. Every proposed feature list and every feature PRD
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Discover inputs** — find parent PRD, floorplan, contracts, architecture docs, existing tech, existing feature PRDs, determine output format
-2. **Identify features** — analyze PRD items, group into coherent features, check contract alignment, present to user for confirmation
+1. **Discover inputs** — find parent PRD, floorplan, architecture docs, existing tech, existing feature PRDs, determine output format
+2. **Identify features** — analyze PRD items, group into coherent features, present to user for confirmation
 3. **Generate feature PRDs** — produce each feature PRD one at a time, presenting each for review before writing
 4. **Summary & next steps** — write index file, suggest next actions
 
@@ -38,11 +38,9 @@ Search these locations:
 |----------|--------------------|
 | **PRD** | `docs/prd.md`, `docs/prd.org`, `docs/prd/`, `docs/prds/` |
 | **Floorplan** | `docs/floorplan.md`, `docs/floorplan.org` |
-| **Contracts** | `docs/contracts.md`, `docs/contracts.org` |
 | **Architecture docs** | `docs/architecture.md`, `docs/architecture.org`, `docs/architecture/` |
 | **Technology choices** | `docs/technology.md`, `docs/technology.org`, `docs/technology/` |
 | **Existing feature PRDs** | `docs/features/` |
-| **Feature contracts** | `docs/features/*-contracts.md`, `docs/features/*-contracts.org` |
 
 Use Glob to check all locations. Read any documents found.
 
@@ -95,13 +93,11 @@ Read through the parent PRD and catalog:
 - **User Journeys** (UJ items) — end-to-end user flows
 - **Functional Requirements** (FR items) — specific behaviors
 
-### Use the floorplan and contracts to inform grouping
+### Use the floorplan to inform grouping
 
 If a floorplan exists, use its component inventory (COMP identifiers), block diagrams, and data flows to inform feature boundaries. Components that are tightly connected in the block diagram (BD) or share data flows (DF) are strong candidates for belonging to the same feature. The floorplan's swim-lane diagrams (SL) reveal which components collaborate on specific user journeys — these collaborations often map to feature boundaries.
 
 If no floorplan exists, proceed by inferring structure from the PRD alone, but note to the user: "No floorplan found. Feature boundaries would be more precise with a floorplan. Consider running the floorplan skill first."
-
-If contracts exist, use entity ownership (which COMP creates/owns each ENT) and API boundaries (which COMPs each API connects) as additional signals. Features that cleanly align with entity ownership and API boundaries are easier to implement independently.
 
 ### Group into coherent features
 
@@ -110,22 +106,7 @@ Cluster related PRD items into features based on:
 - **Bounded scope**: each feature should be independently implementable
 - **Cohesion**: items that share data, UI, or domain concepts belong together — the floorplan's data flows (DF) and block diagram clusters are strong signals here
 - **Minimal coupling**: features should have clear interface boundaries, not deep entanglement — the floorplan's component edges show where coupling exists
-- **Entity ownership alignment**: if contracts exist, prefer feature boundaries that give each entity a single owning feature. When an entity must be shared across features, the owning feature should be the one whose components create and manage it; other features consume it through APIs.
 - **Size**: each feature should be small enough to plan and implement as a unit — if it feels like it needs its own breakdown, flag it as "may need recursive decomposition"
-
-### Check contract alignment
-
-If contracts exist, check the proposed feature list against contract boundaries before presenting to the user. For each proposed feature:
-
-1. **Entity ownership**: List which ENT identifiers fall within this feature's components. Flag any entity that is owned (created/managed) by components in multiple features — this is a split-ownership problem that should be resolved now by adjusting feature boundaries or designating a single owning feature.
-2. **API boundary alignment**: List which API identifiers cross this feature's boundary (i.e., connect a component inside the feature to one outside it). These become the feature's interface contracts. APIs where both endpoints are inside the feature are internal to it. Flag any cases where a single API boundary is split across multiple features.
-3. **Event alignment**: List which EVT identifiers are produced or consumed by this feature's components.
-
-If mismatches are found, present them to the user alongside the feature list:
-- "ENT3 (Order) is created by COMP2 (in Feature A) but primarily managed by COMP5 (in Feature B). I recommend [adjusting feature boundaries / designating Feature A as owner]."
-- "API2 connects COMP3 and COMP4, which are in different proposed features. This becomes an inter-feature interface — is that the right cut?"
-
-Resolve alignment issues during this conversation, before writing any feature PRDs.
 
 ### Present the proposed feature list
 
@@ -134,8 +115,6 @@ For each proposed feature, show:
 - **Feature name**: short, descriptive name (e.g., "Authentication", "Billing", "Team Management")
 - **Parent PRD coverage**: which CAP, UC, UJ, FR items this feature covers
 - **Components**: which COMP identifiers belong to this feature (if floorplan exists)
-- **Entities owned**: which ENT identifiers this feature owns (if contracts exist)
-- **Interface APIs**: which API identifiers cross this feature's boundary (if contracts exist)
 - **Brief description**: one sentence explaining the feature's scope
 - **Dependencies**: other features this one depends on or is depended on by
 - **Size assessment**: normal or "large — may need recursive decomposition"
@@ -189,24 +168,19 @@ State which parent PRD items this feature covers:
 
 #### Interface Boundaries
 
-- What this feature exposes to other features (APIs, events, shared state)
-- What this feature consumes from other features
-- How this feature connects to the rest of the system
-- If a floorplan exists, reference the relevant COMP identifiers and cite the block diagram edges (BD) and data flows (DF) that cross this feature's boundary
-- If contracts exist, reference specific identifiers:
-  - **Entities owned** by this feature (ENT identifiers where this feature's components are the creator/manager)
-  - **Entities consumed** from other features (ENT identifiers read but not owned)
-  - **APIs exposed** by this feature (API identifiers where this feature's components serve requests)
-  - **APIs consumed** from other features (API identifiers where this feature's components are the caller)
-  - **Events produced** by this feature (EVT identifiers)
-  - **Events consumed** from other features (EVT identifiers)
+- Which COMP identifiers are inside this feature
+- Which block diagram (BD) edges cross this feature's boundary, and their nature (e.g., "queries", "authenticates")
+- Which data flow (DF) paths connect this feature to other features
+- What data this feature exposes to other features (described by intent, e.g., "provides user profile information" — not by schema)
+- What data this feature consumes from other features (described by intent)
+- If no floorplan exists, describe boundaries in terms of the PRD's capabilities and functional requirements
 
 #### Dependencies
 
 - Other features this one depends on (must be built first or concurrently)
 - Other features that depend on this one
 - External dependencies (third-party services, APIs)
-- If contracts exist, note which ENT/API/EVT identifiers create the dependency (e.g., "Depends on Authentication because this feature consumes API2.1 (Validate Token) and reads ENT1 (User)")
+- Cite which component interactions (from the floorplan's block diagram edges) create the dependency (e.g., "Depends on Authentication because COMP7 interacts with COMP4 (Auth Service) as shown in BD1")
 
 #### Architectural Constraints
 
@@ -217,23 +191,6 @@ State which parent PRD items this feature covers:
 
 - What is explicitly out of scope for this feature
 - Inherit parent NG identifiers where applicable; new non-goals continue numbering from the parent
-
-#### Contract Amendments (if contracts exist)
-
-If this feature reveals gaps or mismatches in the contracts document, list them here. Each amendment is a structured note the contracts skill can ingest when re-run.
-
-Only include amendments when the feature PRD reveals something the contracts didn't anticipate. Do NOT re-describe contracts that are already correct — reference them by identifier.
-
-Types of amendments:
-
-- **New entity needed**: "This feature requires an entity for [concept] not currently in contracts. Proposed: ENT_NEW with fields [...]"
-- **Entity modification**: "ENT3 needs an additional field [field_name] ([type]) to support FR7.2"
-- **Entity split**: "ENT2 should be split into ENT2 (core fields) and ENT_NEW (feature-specific fields) because [reason]"
-- **New API operation**: "API1 needs an additional operation for [purpose] to support UC4.2"
-- **New event**: "This feature needs an event [EventName] emitted by COMP3 when [trigger] to support FR8"
-- **Boundary change**: "API3 should connect COMP5 → COMP6 instead of COMP5 → COMP4 because [reason]"
-
-If no amendments are needed, omit this section entirely from the feature PRD.
 
 ### 2. Present for review
 
@@ -272,11 +229,11 @@ Feature-level PRDs derived from [[file:../prd.org][parent PRD]].
 
 * Features
 
-| Feature | File | Parent PRD Coverage | Entities Owned | Dependencies |
-|---------+------+---------------------+----------------+--------------|
-| Authentication | [[file:authentication.org][authentication.org]] | CAP1, UC1, FR1–FR3 | ENT1, ENT4 | None |
-| Team Management | [[file:team-management.org][team-management.org]] | CAP2, UC2, UC4, FR4–FR6 | ENT2 | Authentication |
-| Billing | [[file:billing.org][billing.org]] | CAP3, UC3, FR7–FR9 | ENT3, ENT5 | Authentication, Team Management |
+| Feature | File | Parent PRD Coverage | Components | Dependencies |
+|---------+------+---------------------+------------+--------------|
+| Authentication | [[file:authentication.org][authentication.org]] | CAP1, UC1, FR1–FR3 | COMP2, COMP4 | None |
+| Team Management | [[file:team-management.org][team-management.org]] | CAP2, UC2, UC4, FR4–FR6 | COMP3, COMP5 | Authentication |
+| Billing | [[file:billing.org][billing.org]] | CAP3, UC3, FR7–FR9 | COMP6, COMP7 | Authentication, Team Management |
 
 * Dependency Graph
 
@@ -297,11 +254,11 @@ List features in implementation order based on dependencies.
 
 ## Features
 
-| Feature | File | Parent PRD Coverage | Entities Owned | Dependencies |
-|---------|------|---------------------|----------------|--------------|
-| Authentication | [authentication.md](authentication.md) | CAP1, UC1, FR1–FR3 | ENT1, ENT4 | None |
-| Team Management | [team-management.md](team-management.md) | CAP2, UC2, UC4, FR4–FR6 | ENT2 | Authentication |
-| Billing | [billing.md](billing.md) | CAP3, UC3, FR7–FR9 | ENT3, ENT5 | Authentication, Team Management |
+| Feature | File | Parent PRD Coverage | Components | Dependencies |
+|---------|------|---------------------|------------|--------------|
+| Authentication | [authentication.md](authentication.md) | CAP1, UC1, FR1–FR3 | COMP2, COMP4 | None |
+| Team Management | [team-management.md](team-management.md) | CAP2, UC2, UC4, FR4–FR6 | COMP3, COMP5 | Authentication |
+| Billing | [billing.md](billing.md) | CAP3, UC3, FR7–FR9 | COMP6, COMP7 | Authentication, Team Management |
 
 ## Dependency Graph
 
@@ -325,9 +282,7 @@ After writing the index, tell the user:
 
 - "Your PRD has been broken into feature-level PRDs. Next steps you might consider:"
   - For large features flagged during Phase 1: run this skill again on that feature PRD for recursive decomposition
-  - If any feature PRDs include Contract Amendments sections: re-run the contracts skill to incorporate the amendments, then review affected feature PRDs for consistency
-  - If no floorplan exists, run the floorplan skill to define the architectural structure before implementation
-  - Run the contracts skill to define entities and APIs if contracts don't exist yet
+  - Run the contracts skill to define entities, APIs, and protocols — the feature boundaries you just defined will help contracts prioritize inter-feature interfaces
   - Run the tech-plan skill to make technology decisions
   - Begin implementation planning for features with no dependencies first
   - Review the dependency graph to identify parallelizable work

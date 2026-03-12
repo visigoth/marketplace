@@ -23,7 +23,7 @@ plugins/                         # All plugins live here
 
 | Plugin | Description |
 |--------|-------------|
-| `starchitect` | Product architecture toolkit. Includes PRD generation (product-architect agent + prd-create skill), architectural floorplans with block/data-flow/swim-lane diagrams (floorplan skill), entity/API/protocol contracts (contracts skill), and technology research (tech-plan skill). Bridges the gap from product idea to implementation-ready documentation. |
+| `starchitect` | Product architecture toolkit. Pipeline: PRD generation (prd-create) → architectural floorplans (floorplan) → feature decomposition (prd-feature-breakdown) → entity/API/protocol contracts (contracts). Also includes technology research (tech-plan). Bridges the gap from product idea to implementation-ready documentation. |
 
 ## Adding a New Plugin
 

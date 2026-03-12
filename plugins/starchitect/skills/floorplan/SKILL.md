@@ -311,10 +311,10 @@ Write to `docs/floorplan.org` (or `docs/floorplan.md` based on Phase 0).
 
 After writing, tell the user:
 - "Your architectural floorplan is documented. Next steps you might consider:"
-  - Run the tech-plan skill to make technology decisions informed by this architecture
   - Run the prd-feature-breakdown skill to decompose the PRD into feature-level PRDs aligned with these components
+  - Then run the contracts skill to define entities, APIs, and protocols — feature boundaries help contracts prioritize inter-feature interfaces
+  - Run the tech-plan skill to make technology decisions informed by this architecture
   - Review with your team — the traceability matrix makes it easy to verify coverage
-  - Use the swim-lane diagrams as the basis for API contracts and interface definitions
 
 ---
 

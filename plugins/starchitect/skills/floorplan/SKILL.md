@@ -124,18 +124,39 @@ From the PRD requirements and codebase analysis, identify the architectural comp
 
 - **Identifier**: COMP1, COMP2, etc.
 - **Name**: short, descriptive (e.g., "API Gateway", "Auth Service", "User Database")
-- **Type**: service, library, database, message queue, external system, UI, CDN, cache, or other
+- **Type**: one of the runtime component types below
 - **Responsibility**: 1-2 sentences on what this component does
 - **PRD provenance**: which CAP, FR, UC, UJ, or AC items justify this component's existence
-- **Code status**: "existing" (found in codebase), "new" (required by PRD but not yet implemented), or "external" (third-party service)
+- **Code status**: "existing" (found in codebase), "new" (required by PRD but not yet implemented), or "external" (third-party system not under your control)
+
+**Component types — runtime concepts only:**
+
+Architectural floorplan components are **runtime concepts** — things that exist as running processes, reachable endpoints, or persistent system-level entities at deployment time.
+
+| Type | Description | Examples |
+|------|-------------|---------|
+| service | A long-running process that exposes an API or performs background work | API server, auth service, worker process |
+| application | A user-facing application that runs as its own process | Web app (SPA served by a web server), mobile app, desktop app, CLI tool |
+| daemon | A background process that runs continuously without direct user interaction | Cron scheduler, log collector, metrics exporter |
+| gateway | An entry point that routes, filters, or transforms traffic | API gateway, reverse proxy, load balancer |
+| broker | A message-passing intermediary between components | Message queue, event bus, pub/sub system |
+| cache | An in-memory or near-memory store for fast reads | Redis cache, CDN edge cache, in-process cache |
+| storage | A persistent data store — use sparingly, only when the store is architecturally distinct from the service that manages it | Database, object store, search index |
+
+**What is NOT a component:**
+
+Libraries, SDKs, frameworks, binaries, configuration files, and application packages are **build-time artifacts**, not components. They implement features that components use or expose. Do not list them in the component inventory. If a library is architecturally significant, mention it in the responsibility description of the component that uses it.
+
+Similarly, "external" is not a component type — it describes provenance (code status), not what something is at runtime. A third-party payment processor is a `service` with code status `external`. A third-party CDN is a `cache` with code status `external`.
 
 **Rules for component identification:**
 
 1. Components already present in the codebase are carried forward — do not reinvent them. Use the names and boundaries that exist.
 2. New components are identified only where the PRD requires capabilities not yet present in code.
-3. External systems referenced by the PRD (payment processors, email services, third-party APIs) are listed as components with type "external."
+3. External systems referenced by the PRD (payment processors, email services, third-party APIs) are listed as components with their appropriate runtime type and code status "external."
 4. Infrastructure components (load balancers, message brokers, caches) are included only when justified by a PRD requirement (FR, AC, or implied by a UC/UJ's performance or reliability needs).
 5. Every component must trace to at least one PRD item. No phantom components.
+6. Use the `storage` type sparingly. Most data stores are managed by a service — only promote storage to its own component when it is shared across multiple services or when its operational characteristics (replication, sharding, backup) are architecturally significant.
 
 ### Present for confirmation
 
@@ -339,8 +360,8 @@ Technology: [[file:technology.org][Technology Choices]] (if exists)
 
 | ID | Name | Type | Responsibility | PRD Provenance | Status |
 |----+------+------+----------------+----------------+--------|
-| COMP1 | Web App | UI | User-facing web interface | CAP1, UC1 | existing |
-| COMP2 | API Gateway | service | Routes and authenticates requests | FR1, FR2, AC1 | new |
+| COMP1 | Web App | application | User-facing web interface | CAP1, UC1 | existing |
+| COMP2 | API Gateway | gateway | Routes and authenticates requests | FR1, FR2, AC1 | new |
 
 * Block Diagrams
 
@@ -432,8 +453,8 @@ Brief summary of the system being modeled.
 
 | ID | Name | Type | Responsibility | PRD Provenance | Status |
 |----|------|------|----------------|----------------|--------|
-| COMP1 | Web App | UI | User-facing web interface | CAP1, UC1 | existing |
-| COMP2 | API Gateway | service | Routes and authenticates requests | FR1, FR2, AC1 | new |
+| COMP1 | Web App | application | User-facing web interface | CAP1, UC1 | existing |
+| COMP2 | API Gateway | gateway | Routes and authenticates requests | FR1, FR2, AC1 | new |
 
 ## Block Diagrams
 

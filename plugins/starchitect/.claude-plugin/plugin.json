@@ -8,8 +8,6 @@
   },
   "repository": "https://github.com/visigoth/marketplace",
   "license": "MIT",
-  "skills": "./skills/",
-  "agents": "./agents/",
   "keywords": [
     "workflow",
     "planning",

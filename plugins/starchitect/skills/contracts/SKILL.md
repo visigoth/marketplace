@@ -58,14 +58,18 @@ Use Glob to check all locations. Read any documents found.
 - Load it and summarize its current state to the user
 - Ask the user what they want to do: update existing contracts, extend with new ones, or start fresh
 
-### Load feature boundaries
+### Load feature index
 
-If feature PRDs exist in `docs/features/`, load them to understand which components belong to which features. This context helps contracts:
-- Organize output by feature scope when appropriate
+Check for `docs/features/index.org` or `docs/features/index.md`. If found, load it — the index provides the epic/feature hierarchy, component-to-feature mappings, and dependency graph. This is sufficient for Phase 0 scoping decisions.
+
+**Do NOT load individual feature PRDs at this point.** Feature PRDs are loaded on-demand in Phases 1–3 when their components come into scope during entity and API analysis.
+
+The feature index helps contracts:
+- Determine scope (system-wide vs feature-scoped)
 - Prioritize inter-feature boundaries (which need the cleanest public APIs) over intra-feature boundaries (where tighter coupling is acceptable)
 - Validate entity ownership alignment with feature boundaries in Phase 4
 
-If no feature PRDs exist, note to the user: "No feature PRDs found. Consider running the prd-feature-breakdown skill first to define feature boundaries — this helps contracts prioritize which API boundaries need the cleanest interfaces."
+If no feature index exists, note to the user: "No feature index found. Consider running the prd-feature-breakdown skill first to define feature boundaries — this helps contracts prioritize which API boundaries need the cleanest interfaces."
 
 ### If no floorplan is found:
 
@@ -134,6 +138,12 @@ Summarize what you found:
 
 Entities are the nouns of the system — the data objects that components create, read, update, delete, and exchange.
 
+### Load feature PRDs on-demand
+
+If running system-wide and a feature index exists, load individual feature PRDs as needed to understand which FRs and components are involved in entity identification. Load only the feature PRDs whose components are relevant to the current analysis — not all of them at once.
+
+If running feature-scoped, load only the scoped feature's PRD from `docs/features/`.
+
 ### Extract entity candidates
 
 From the inputs, identify entity candidates:
@@ -153,6 +163,8 @@ For each entity candidate, ask targeted questions to fill gaps:
 - **Relationships**: What other entities does it reference? (one-to-one, one-to-many, many-to-many)
 - **Constraints**: Are there invariants? (e.g., "an order must have at least one line item", "a user's email must be unique")
 - **Sensitivity**: Does this entity contain PII, credentials, financial data, or other sensitive fields? Note for downstream security decisions.
+
+**Use sensible defaults for obvious answers.** When an entity's identity, lifecycle, or relationships are clear from the PRD, floorplan, or existing code, state your assumption and move on — don't ask the user to confirm what's already evident. Only interview on genuinely ambiguous decisions (e.g., "Should user IDs be UUIDs or auto-increment?" when neither the PRD nor codebase establishes a convention).
 
 Group questions — ask no more than 5-7 at a time. Prioritize questions that unblock the most entity definitions.
 
@@ -212,6 +224,8 @@ For each component boundary, present the context and ask:
 - What operations does the calling component need? (informed by the floorplan's swim lanes — each SL message becomes an API call or event)
 - What entities are sent and received? (reference ENT identifiers from Phase 1)
 - What are the error cases? (not found, unauthorized, validation failure, conflict)
+
+**Use sensible defaults for obvious decisions.** When the technology choices doc, existing code, or architectural constraints make the protocol choice clear, state it and move on. Only present options when there is a genuine trade-off to resolve.
 
 Group related boundaries — ask no more than 3-4 decisions at a time.
 
@@ -300,6 +314,10 @@ Show the event contracts to the user. Ask for confirmation before proceeding.
 
 If no async boundaries exist, confirm with the user: "I see no async communication in the floorplan. Is that correct, or are there events I should define?"
 
+<HARD-GATE>
+Do NOT proceed to Phase 4 until the user has confirmed the event contracts (or confirmed that no events are needed).
+</HARD-GATE>
+
 ---
 
 ## Phase 4: Validate & Assess
@@ -347,7 +365,7 @@ Evaluate the contracts against each rule below. For each rule, state pass or fai
 8. **Protocol-entity compatibility** — Serialization format can represent all entity field types. (e.g., Protocol Buffers can handle the types used; JSON can represent the precision needed for decimal fields.)
 9. **Constraint compliance** — Every architectural constraint (AC) from the PRD is honored in the contracts. For each AC, state how.
 10. **Non-goal boundary enforcement** — No API or event implements functionality listed as a non-goal (NG).
-11. **Identifier namespace integrity** — All identifiers (ENT, API, EVT, PROTO) are unique, follow the prefix convention, and do not collide with PRD identifiers (CAP, FR, UC, UJ, AC, G, NG, P) or floorplan identifiers (COMP, BD, DF, SL).
+11. **Identifier namespace integrity** — All identifiers (ENT, API, EVT) are unique, follow the prefix convention, and do not collide with PRD identifiers (CAP, FR, UC, UJ, AC, G, NG, P) or floorplan identifiers (COMP, BD, DF, SL).
 
 #### Coherence rules
 
@@ -370,7 +388,14 @@ Write the assessment as the final section of the contracts document. List each r
 
 ### Present the complete contracts document
 
-Show the user the complete document — all entities, APIs, protocols, events, traceability matrices, and quality assessment.
+Show the user the complete document for review. For large documents, present in sections rather than all at once:
+
+1. Entity catalog and ER diagram
+2. API contracts and protocol decisions
+3. Event contracts
+4. Traceability matrices and quality assessment
+
+Ask for confirmation after each section. If the user has already reviewed and confirmed entities (Phase 1), APIs (Phase 2), and events (Phase 3) individually, present only the traceability matrices and quality assessment as new material — do not re-present sections the user has already approved.
 
 <HARD-GATE>
 Do NOT write to disk until the user has reviewed and approved the contracts document.
@@ -381,13 +406,18 @@ Do NOT write to disk until the user has reviewed and approved the contracts docu
 - System-wide: write to `docs/contracts.org` (or `docs/contracts.md` based on Phase 0)
 - Feature-scoped: write to `docs/features/<feature-name>-contracts.org` (or `.md`)
 
+### Consolidation: feature-scoped to system-wide
+
+If multiple feature-scoped contracts files already exist when running this skill:
+
+- **System-wide run**: load existing feature-scoped contracts and consolidate them into the system-wide document. Deduplicate entities that appear in multiple feature contracts (same ENT, keep the richest definition). Merge API boundaries that overlap. After consolidation, the feature-scoped files can be kept as references or removed — ask the user.
+- **Feature-scoped run**: check existing system-wide or feature-scoped contracts first. Reference shared entities by identifier rather than redefining them. Only define new entities and APIs specific to this feature.
+
 ### Suggest next steps
 
 After writing, tell the user:
 - "Your contracts are documented. Next steps you might consider:"
-  - Use entity schemas to generate database migrations or ORM models
-  - Use API contracts to generate server stubs or client SDKs
-  - Use proto/GraphQL/OpenAPI definitions as the source of truth for code generation
+  - Run the bv-taskify skill to decompose features into implementation task hierarchies in br (beads) — contracts inform the task boundaries and acceptance criteria
   - Run the tech-plan skill to make technology decisions informed by these contracts
   - Review with your team — the traceability matrices make it easy to verify coverage
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## starchitect 0.3.0
+
+### Features
+
+- Add bv-taskify skill for feature-to-task decomposition — component-scoped task hierarchies in br (beads) with lazy document loading, parallelism-aware dependencies, and FR coverage tracking ([f9d402e](https://github.com/visigoth/marketplace/commit/f9d402e))
+
 ## starchitect 0.2.0
 
 ### Features

@@ -13,7 +13,7 @@
       "name": "starchitect",
       "source": "./plugins/starchitect",
       "description": "PRD to architecture \u2014 research technology choices and architecture before forming an implementation plan",
-      "version": "0.2.0"
+      "version": "0.3.0"
     }
   ]
 }

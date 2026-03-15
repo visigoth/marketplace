@@ -49,7 +49,7 @@ Search these locations:
 | **Architecture docs** | `docs/architecture.md`, `docs/architecture.org`, `docs/architecture/` |
 | **Technology choices** | `docs/technology.md`, `docs/technology.org`, `docs/technology/` |
 | **Feature PRDs** | `docs/features/` |
-| **Existing contracts** | `docs/contracts.md`, `docs/contracts.org` |
+| **Existing contracts** | `docs/contracts.md`, `docs/contracts.org`, `docs/contracts/` |
 
 Use Glob to check all locations. Read any documents found.
 
@@ -121,9 +121,10 @@ Ask the user:
 ### Determine output format
 
 - Scan `docs/` for `.org` vs `.md` files (Glob for `docs/**/*.org` and `docs/**/*.md`)
-- If org-mode files are present, output `docs/contracts.org`; otherwise output `docs/contracts.md`
-- If feature-scoped, output `docs/features/<feature-name>-contracts.org` (or `.md`)
+- If org-mode files are present, use `.org`; otherwise use `.md`
 - Tell the user which format you'll use
+
+Output is always a split structure — a compact index file plus detail files (see Output Document Structure for the full layout).
 
 ### Present discovered context
 
@@ -386,31 +387,68 @@ Write the assessment as the final section of the contracts document. List each r
 
 ## Phase 5: Write Output
 
-### Present the complete contracts document
+### Present for final review
 
-Show the user the complete document for review. For large documents, present in sections rather than all at once:
-
-1. Entity catalog and ER diagram
-2. API contracts and protocol decisions
-3. Event contracts
-4. Traceability matrices and quality assessment
-
-Ask for confirmation after each section. If the user has already reviewed and confirmed entities (Phase 1), APIs (Phase 2), and events (Phase 3) individually, present only the traceability matrices and quality assessment as new material — do not re-present sections the user has already approved.
+If the user has already reviewed and confirmed entities (Phase 1), APIs (Phase 2), and events (Phase 3) individually, present only the traceability matrices and quality assessment as new material — do not re-present sections the user has already approved.
 
 <HARD-GATE>
-Do NOT write to disk until the user has reviewed and approved the contracts document.
+Do NOT write to disk until the user has reviewed and approved the traceability matrices and quality assessment.
 </HARD-GATE>
 
-### Write to disk
+### Write to disk — split structure
 
-- System-wide: write to `docs/contracts.org` (or `docs/contracts.md` based on Phase 0)
-- Feature-scoped: write to `docs/features/<feature-name>-contracts.org` (or `.md`)
+Contracts are **always** written as a split structure: a compact index file plus detail files in a subdirectory. This keeps the index small enough to always load into context, while detail files are loaded on-demand by downstream skills (bv-taskify, implementation agents).
+
+**System-wide output:**
+
+```
+docs/contracts.{org,md}           ← compact index (~100-120 lines)
+docs/contracts/
+  entities.{org,md}               ← all entity schemas + ER diagram
+  <api-name>.{org,md}             ← one file per API boundary (or group of small boundaries)
+  events.{org,md}                 ← all event contracts
+```
+
+**Feature-scoped output:**
+
+```
+docs/features/<feature-name>-contracts.{org,md}    ← compact index
+docs/features/<feature-name>-contracts/
+  entities.{org,md}
+  <api-name>.{org,md}
+  events.{org,md}
+```
+
+#### API boundary file grouping
+
+- Each API boundary with many operations (>5) gets its own file, named after the boundary (e.g., `api1-user-service.{org,md}`)
+- Small API boundaries with few operations can be grouped into a single file (e.g., `api-infrastructure.{org,md}` for API4, API6, API7, API8)
+- Use descriptive kebab-case names, not just the API identifier
+
+#### What goes in the index
+
+The index is compact and self-contained for answering questions like "what covers FR07?" without loading detail files:
+
+- Overview and links to source documents (PRD, floorplan, technology)
+- Entity summary table (ID, name, one-line description, owning COMP, link to detail file)
+- API boundary summary table (ID, from → to, protocol, operation count, link to detail file)
+- Event summary table (ID, name, trigger, link to detail file)
+- Protocol decisions table
+- PRD traceability matrix
+- Floorplan traceability matrix
+- Quality assessment table
+
+#### What goes in detail files
+
+- **entities file**: full entity schemas with all fields, types, constraints, relationships, provenance, sensitivity; ER diagram (Mermaid)
+- **API boundary files**: boundary metadata (protocol, serialization, auth), all operations with request/response schemas, error cases, provenance, idempotency
+- **events file**: full event contracts with payload schemas, delivery semantics, ordering, transport
 
 ### Consolidation: feature-scoped to system-wide
 
-If multiple feature-scoped contracts files already exist when running this skill:
+If multiple feature-scoped contracts exist when running this skill:
 
-- **System-wide run**: load existing feature-scoped contracts and consolidate them into the system-wide document. Deduplicate entities that appear in multiple feature contracts (same ENT, keep the richest definition). Merge API boundaries that overlap. After consolidation, the feature-scoped files can be kept as references or removed — ask the user.
+- **System-wide run**: load existing feature-scoped contract indexes and consolidate into system-wide files. Deduplicate entities (same ENT, keep the richest definition). Merge overlapping API boundaries. After consolidation, feature-scoped files can be kept or removed — ask the user.
 - **Feature-scoped run**: check existing system-wide or feature-scoped contracts first. Reference shared entities by identifier rather than redefining them. Only define new entities and APIs specific to this feature.
 
 ### Suggest next steps
@@ -425,7 +463,9 @@ After writing, tell the user:
 
 ## Output Document Structure
 
-### Org-mode template (`docs/contracts.org`):
+Output is always split into a compact **index file** and a **detail directory**. Templates below show both org-mode and markdown variants. Only produce the format determined in Phase 0.
+
+### Index file template — org-mode (`docs/contracts.org`):
 
 ```org
 #+TITLE: Contracts
@@ -440,79 +480,30 @@ Floorplan: [[file:floorplan.org][Floorplan]]
 Technology: [[file:technology.org][Technology Choices]] (if exists)
 Scope: System-wide | Feature: <feature-name>
 
-* Entity Catalog
+* Entity Summary
 
-** ENT1: User
+Full schemas: [[file:contracts/entities.org][Entity Detail]]
 
-- Primary key: =id= (uuid)
-- PRD provenance: CAP1, FR1, FR2
-- Floorplan provenance: COMP2 (owner), COMP3 (reader); DF1.1
-- Code status: existing (=src/models/user.go=)
-- Sensitivity: PII
+| ID | Name | Description | Owner | Sensitivity |
+|----+------+-------------+-------+-------------|
+| ENT1 | User | Registered user account | COMP2 | PII |
+| ENT2 | Team | Organization unit | COMP3 | none |
 
-| Field | Type | Constraints | Notes |
-|-------+------+-------------+-------|
-| id | uuid | PK, immutable | |
-| email | string | unique, not null | PII |
-| name | string | not null | PII |
-| created_at | timestamp | not null, immutable | |
-| team_id | reference(ENT2) | not null | FK to Team |
+* API Boundary Summary
 
-** ENT2: Team
+| ID | Boundary | Protocol | Ops | Detail |
+|----+----------+----------+-----+--------|
+| API1 | COMP1 → COMP3 (Web App → API Gateway) | REST/HTTP | 12 | [[file:contracts/api1-api-gateway.org]] |
+| API2 | COMP3 → COMP4 (API Gateway → Auth Service) | gRPC | 4 | [[file:contracts/api2-auth-service.org]] |
+| API4–API8 | Infrastructure APIs | various | 15 | [[file:contracts/api-infrastructure.org]] |
 
-...
+* Event Summary
 
-* Entity Relationship Diagram
+Full contracts: [[file:contracts/events.org][Event Detail]]
 
-#+BEGIN_SRC mermaid
-erDiagram
-    USER ||--o{ ORDER : places
-    USER }|--|| TEAM : belongs-to
-    ORDER ||--|{ LINE-ITEM : contains
-#+END_SRC
-
-* API Contracts
-
-** API1: COMP1 → COMP3 (Web App → API Gateway)
-
-- Protocol: REST/HTTP
-- Serialization: JSON
-- Authentication: Bearer token
-
-*** API1.1: Create user
-
-- Direction: request/response
-- PRD provenance: FR1, UC1.1
-- Floorplan provenance: SL1 (step 2)
-- Idempotency: idempotent (email as natural key)
-
-Request:
-
-| Field | Type | Required | Notes |
-|-------+------+----------+-------|
-| email | string | yes | Must be valid email |
-| name | string | yes | |
-| team_id | uuid | yes | Must reference existing ENT2 |
-
-Response (success):
-
-| Field | Type | Notes |
-|-------+------+-------|
-| id | uuid | Assigned by server |
-| email | string | |
-| name | string | |
-| created_at | timestamp | |
-
-Response (error):
-
-| Code | Condition |
-|------+-----------|
-| 400 | Validation failure |
-| 409 | Email already exists |
-
-** API2: COMP3 → COMP4 (API Gateway → Auth Service)
-
-...
+| ID | Name | Trigger | Producer | Consumers |
+|----+------+---------+----------+-----------|
+| EVT1 | UserCreated | New user persisted | COMP3 | COMP6, COMP7 |
 
 * Protocol Decisions
 
@@ -520,24 +511,6 @@ Response (error):
 |----------+------+----+----------+---------------+-----------|
 | API1 | COMP1 | COMP3 | REST/HTTP | JSON | Public-facing, broad client support |
 | API2 | COMP3 | COMP4 | gRPC | Protocol Buffers | Internal, low-latency |
-
-* Event Contracts
-
-** EVT1: UserCreated
-
-- Producer: COMP3
-- Consumers: COMP6, COMP7
-- Trigger: after new user record is persisted
-- Transport: Kafka topic =user-events=
-- Delivery: at-least-once
-- Ordering: ordered by user ID partition key
-- PRD provenance: FR5
-
-| Field | Type | Notes |
-|-------+------+-------|
-| user_id | uuid | References ENT1 |
-| email | string | |
-| created_at | timestamp | |
 
 * PRD Traceability Matrix
 
@@ -551,7 +524,7 @@ Response (error):
 
 | Floorplan Element | Type | Contract coverage |
 |-------------------+------+-------------------|
-| COMP1 → COMP3 | BD edge | API1 (REST, 4 operations) |
+| COMP1 → COMP3 | BD edge | API1 (REST, 12 operations) |
 | DF1.1 | Data flow | ENT1, ENT2 via API1.1, API1.2 |
 | SL1 | Swim lane | API1.1 → API2.1 → EVT1 |
 
@@ -561,23 +534,10 @@ Response (error):
 |---+------+--------+-------|
 | 1 | Entity coverage | Pass | All data entities defined |
 | 2 | API edge coverage | Pass | All sync edges have API contracts |
-| 3 | Event edge coverage | Pass | All async edges have event contracts |
-| 4 | Swim-lane fidelity | Pass | All SL messages mapped |
-| 5 | Data flow fidelity | Pass | All DF annotations mapped |
-| 6 | CRUD completeness | Pass | All entity lifecycles covered |
-| 7 | Schema-API alignment | Pass | All schemas reference ENT IDs |
-| 8 | Protocol-entity compatibility | Pass | Serialization formats compatible |
-| 9 | Constraint compliance | Pass | AC1: honored by ... |
-| 10 | Non-goal boundary | Pass | No NG items implemented |
-| 11 | Identifier namespace integrity | Pass | No collisions |
-| 12 | ER consistency | Pass | ER diagram matches schemas |
-| 13 | Bidirectional edge consistency | Pass | Request/response shapes match |
-| 14 | Event producer-consumer consistency | Pass | All events have consumers |
-| 15 | Entity ownership alignment | Pass | Each entity owned by a single feature |
-| 16 | Inter-feature API cleanliness | Pass | Inter-feature APIs are well-scoped |
+| ... | ... | ... | ... |
 ```
 
-### Markdown template (`docs/contracts.md`):
+### Index file template — markdown (`docs/contracts.md`):
 
 ```markdown
 # Contracts
@@ -592,79 +552,30 @@ Response (error):
 
 Brief summary of the contracts defined in this document.
 
-## Entity Catalog
+## Entity Summary
 
-### ENT1: User
+Full schemas: [Entity Detail](contracts/entities.md)
 
-- **Primary key:** `id` (uuid)
-- **PRD provenance:** CAP1, FR1, FR2
-- **Floorplan provenance:** COMP2 (owner), COMP3 (reader); DF1.1
-- **Code status:** existing (`src/models/user.go`)
-- **Sensitivity:** PII
+| ID | Name | Description | Owner | Sensitivity |
+|----|------|-------------|-------|-------------|
+| ENT1 | User | Registered user account | COMP2 | PII |
+| ENT2 | Team | Organization unit | COMP3 | none |
 
-| Field | Type | Constraints | Notes |
-|-------|------|-------------|-------|
-| id | uuid | PK, immutable | |
-| email | string | unique, not null | PII |
-| name | string | not null | PII |
-| created_at | timestamp | not null, immutable | |
-| team_id | reference(ENT2) | not null | FK to Team |
+## API Boundary Summary
 
-### ENT2: Team
+| ID | Boundary | Protocol | Ops | Detail |
+|----|----------|----------|-----|--------|
+| API1 | COMP1 → COMP3 (Web App → API Gateway) | REST/HTTP | 12 | [api1-api-gateway.md](contracts/api1-api-gateway.md) |
+| API2 | COMP3 → COMP4 (API Gateway → Auth Service) | gRPC | 4 | [api2-auth-service.md](contracts/api2-auth-service.md) |
+| API4–API8 | Infrastructure APIs | various | 15 | [api-infrastructure.md](contracts/api-infrastructure.md) |
 
-...
+## Event Summary
 
-## Entity Relationship Diagram
+Full contracts: [Event Detail](contracts/events.md)
 
-```mermaid
-erDiagram
-    USER ||--o{ ORDER : places
-    USER }|--|| TEAM : belongs-to
-    ORDER ||--|{ LINE-ITEM : contains
-```
-
-## API Contracts
-
-### API1: COMP1 → COMP3 (Web App → API Gateway)
-
-- **Protocol:** REST/HTTP
-- **Serialization:** JSON
-- **Authentication:** Bearer token
-
-#### API1.1: Create user
-
-- **Direction:** request/response
-- **PRD provenance:** FR1, UC1.1
-- **Floorplan provenance:** SL1 (step 2)
-- **Idempotency:** idempotent (email as natural key)
-
-**Request:**
-
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| email | string | yes | Must be valid email |
-| name | string | yes | |
-| team_id | uuid | yes | Must reference existing ENT2 |
-
-**Response (success):**
-
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | Assigned by server |
-| email | string | |
-| name | string | |
-| created_at | timestamp | |
-
-**Response (error):**
-
-| Code | Condition |
-|------|-----------|
-| 400 | Validation failure |
-| 409 | Email already exists |
-
-### API2: COMP3 → COMP4 (API Gateway → Auth Service)
-
-...
+| ID | Name | Trigger | Producer | Consumers |
+|----|------|---------|----------|-----------|
+| EVT1 | UserCreated | New user persisted | COMP3 | COMP6, COMP7 |
 
 ## Protocol Decisions
 
@@ -672,24 +583,6 @@ erDiagram
 |----------|------|----|----------|---------------|-----------|
 | API1 | COMP1 | COMP3 | REST/HTTP | JSON | Public-facing, broad client support |
 | API2 | COMP3 | COMP4 | gRPC | Protocol Buffers | Internal, low-latency |
-
-## Event Contracts
-
-### EVT1: UserCreated
-
-- **Producer:** COMP3
-- **Consumers:** COMP6, COMP7
-- **Trigger:** after new user record is persisted
-- **Transport:** Kafka topic `user-events`
-- **Delivery:** at-least-once
-- **Ordering:** ordered by user ID partition key
-- **PRD provenance:** FR5
-
-| Field | Type | Notes |
-|-------|------|-------|
-| user_id | uuid | References ENT1 |
-| email | string | |
-| created_at | timestamp | |
 
 ## PRD Traceability Matrix
 
@@ -703,7 +596,7 @@ erDiagram
 
 | Floorplan Element | Type | Contract coverage |
 |-------------------|------|-------------------|
-| COMP1 → COMP3 | BD edge | API1 (REST, 4 operations) |
+| COMP1 → COMP3 | BD edge | API1 (REST, 12 operations) |
 | DF1.1 | Data flow | ENT1, ENT2 via API1.1, API1.2 |
 | SL1 | Swim lane | API1.1 → API2.1 → EVT1 |
 
@@ -713,21 +606,20 @@ erDiagram
 |---|------|--------|-------|
 | 1 | Entity coverage | Pass | All data entities defined |
 | 2 | API edge coverage | Pass | All sync edges have API contracts |
-| 3 | Event edge coverage | Pass | All async edges have event contracts |
-| 4 | Swim-lane fidelity | Pass | All SL messages mapped |
-| 5 | Data flow fidelity | Pass | All DF annotations mapped |
-| 6 | CRUD completeness | Pass | All entity lifecycles covered |
-| 7 | Schema-API alignment | Pass | All schemas reference ENT IDs |
-| 8 | Protocol-entity compatibility | Pass | Serialization formats compatible |
-| 9 | Constraint compliance | Pass | AC1: honored by ... |
-| 10 | Non-goal boundary | Pass | No NG items implemented |
-| 11 | Identifier namespace integrity | Pass | No collisions |
-| 12 | ER consistency | Pass | ER diagram matches schemas |
-| 13 | Bidirectional edge consistency | Pass | Request/response shapes match |
-| 14 | Event producer-consumer consistency | Pass | All events have consumers |
-| 15 | Entity ownership alignment | Pass | Each entity owned by a single feature |
-| 16 | Inter-feature API cleanliness | Pass | Inter-feature APIs are well-scoped |
+| ... | ... | ... | ... |
 ```
+
+### Detail file template — entities (`docs/contracts/entities.{org,md}`):
+
+Contains the full entity catalog and ER diagram. Same structure as Phase 1 output: each entity with all fields, types, constraints, relationships, provenance, code status, sensitivity. Ends with the Mermaid ER diagram.
+
+### Detail file template — API boundary (`docs/contracts/<api-name>.{org,md}`):
+
+Contains the full API contract for one boundary (or a group of small boundaries). Same structure as Phase 2 output: boundary metadata (protocol, serialization, auth), then each operation with request/response schemas, error cases, provenance, idempotency.
+
+### Detail file template — events (`docs/contracts/events.{org,md}`):
+
+Contains the full event contracts. Same structure as Phase 3 output: each event with payload schema, delivery semantics, ordering, transport, provenance.
 
 ---
 

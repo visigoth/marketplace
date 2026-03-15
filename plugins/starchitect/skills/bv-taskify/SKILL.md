@@ -112,7 +112,7 @@ Load **only** the sections of these documents that the feature PRD references:
 
 | Document | Load when | What to extract |
 |----------|-----------|-----------------|
-| **Contracts** (`docs/contracts.{org,md}`) | Feature references ENT, API, or EVT identifiers | Entity schemas, API operation signatures, event payloads for referenced identifiers only |
+| **Contracts index** (`docs/contracts.{org,md}`) | Feature references ENT, API, or EVT identifiers | Load the compact index first for identifier lookup; then load specific detail files from `docs/contracts/` (e.g., `entities.{org,md}` for ENT schemas, `<api-name>.{org,md}` for API operations) as needed |
 | **Floorplan** (`docs/floorplan.{org,md}`) | Feature references COMP, BD, SL, or DF identifiers | Component boundaries, relevant block diagram edges, swim-lane interactions |
 | **Technology choices** (`docs/technology.{org,md}`) | Feature's COMPs have technology decisions | Tech stack for the relevant components |
 

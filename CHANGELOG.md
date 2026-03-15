@@ -1,5 +1,11 @@
 # Changelog
 
+## starchitect 0.4.0
+
+### Fixes
+
+- Improve contracts skill for production readiness — lazy-load feature PRDs, add missing HARD-GATE to Phase 3, sensible-defaults guidance for interviews, chunked review for large documents, feature-scoped contract consolidation ([cc90a53](https://github.com/visigoth/marketplace/commit/cc90a53))
+
 ## starchitect 0.3.0
 
 ### Features

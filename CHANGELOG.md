@@ -1,5 +1,11 @@
 # Changelog
 
+## starchitect 0.6.0
+
+### Fixes
+
+- Improve bv-taskify skill for production readiness — priority assignment (P0-P4) with rules table, intra-feature dependency logic, cross-feature dep fallback to feature-level issues, design field as reference pointers, re-taskification guidance, fixed br create example ([378141b](https://github.com/visigoth/marketplace/commit/378141b))
+
 ## starchitect 0.5.0
 
 ### Features

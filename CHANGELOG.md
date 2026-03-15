@@ -1,5 +1,11 @@
 # Changelog
 
+## starchitect 0.7.0
+
+### Features
+
+- Add test-plan skill — final pipeline stage that produces test specifications from PRDs, contracts, and task hierarchies. Adds unit test specs to implementation tasks, creates separate test tasks for integration/e2e/UX tests, outputs split index + per-feature detail files ([c2deb10](https://github.com/visigoth/marketplace/commit/c2deb10))
+
 ## starchitect 0.6.0
 
 ### Fixes

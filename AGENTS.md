@@ -23,7 +23,7 @@ plugins/                         # All plugins live here
 
 | Plugin | Description |
 |--------|-------------|
-| `starchitect` | Product architecture toolkit. Pipeline: PRD generation (prd-create) → architectural floorplans (floorplan) → feature decomposition (prd-feature-breakdown) → entity/API/protocol contracts (contracts) → task decomposition (bv-taskify). Also includes technology research (tech-plan). Bridges the gap from product idea to implementation-ready task hierarchies. |
+| `starchitect` | Product architecture toolkit. Pipeline: PRD generation (prd-create) → architectural floorplans (floorplan) → feature decomposition (prd-feature-breakdown) → entity/API/protocol contracts (contracts) → task decomposition (bv-taskify) → test planning (test-plan). Also includes technology research (tech-plan). Bridges the gap from product idea to implementation-ready task hierarchies with test coverage. |
 
 ## Adding a New Plugin
 

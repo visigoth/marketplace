@@ -1,5 +1,11 @@
 # Changelog
 
+## starchitect 0.5.0
+
+### Features
+
+- Split contracts output into index + detail files — compact index (~100-120 lines) with summary tables and traceability, detail directory with separate files for entities, API boundaries, and events. Enables on-demand loading by downstream skills. ([32cfe84](https://github.com/visigoth/marketplace/commit/32cfe84))
+
 ## starchitect 0.4.0
 
 ### Fixes

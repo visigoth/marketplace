@@ -142,20 +142,35 @@ For each task, produce:
 
 - **Title**: action-oriented, descriptive (e.g., "Implement user creation endpoint in API service")
 - **Type**: `task`
+- **Priority**: P0–P4 based on the task's position in the dependency graph and the criticality of the FRs it covers (see priority rules below)
 - **Labels**: `ep:EPX`, `ft:FTY`, `fr:FRZ` (all relevant FRs), `comp:COMPN`
 - **External ref**: the primary FR identifier this task advances
 - **Description**: narrative context — what this task does and why, in the context of the feature
-- **Design**: rich pointer set to all relevant documentation:
-  - Feature PRD: which sections, which FRs
-  - Floorplan: which COMP, which BD edges show interactions, which SL diagrams show the conversation flow
-  - Contracts: which ENT schemas to implement, which API operations to expose/consume, which EVT events to emit/handle
-  - Technology choices: which tech stack applies
+- **Design**: reference pointers to all relevant documentation sections (identifiers and file paths, not full content):
+  - Feature PRD: which sections, which FRs (e.g., "See FR3.1–FR3.3 in docs/features/user-auth.org")
+  - Floorplan: which COMP, which BD edges, which SL diagrams (e.g., "COMP4 boundary, BD1 edge COMP3→COMP4, SL2 in docs/floorplan.org")
+  - Contracts: which ENT schemas, API operations, EVT events (e.g., "ENT1 in docs/contracts/entities.org, API1.3 in docs/contracts/api1-user-service.org")
+  - Technology choices: which tech stack applies (e.g., "Go + PostgreSQL per docs/technology.org § Backend")
 - **Acceptance criteria**:
   - The specific FR sub-items this task covers (may be a subset of the full FR)
   - Contract compliance for elements this task touches (e.g., "API1.3 response matches ENT2 schema")
   - "All existing tests pass"
   - "New tests cover all acceptance criteria above"
 - **Dependencies**: which other tasks this blocks or is blocked by, with hard/soft strength
+
+#### Priority rules
+
+Assign priority based on two factors — dependency position and FR criticality:
+
+| Priority | Criteria |
+|----------|----------|
+| P0 (Critical) | On the critical path AND covers FRs tied to core capabilities (CAP items) |
+| P1 (High) | On the critical path OR blocks 2+ other tasks |
+| P2 (Medium) | Not on the critical path but covers primary FRs |
+| P3 (Low) | Supports secondary functionality, no tasks depend on it |
+| P4 (Backlog) | Nice-to-have, could be deferred without blocking the feature |
+
+The feature index's implementation ordering and the feature PRD's dependency graph inform which tasks are on the critical path. Epics and features inherit the highest priority of their child tasks.
 
 ### Step 5: Build coverage matrix
 
@@ -169,7 +184,20 @@ After producing all tasks for the feature, build a coverage matrix:
 
 **Every FR and FR sub-item assigned to this feature must be covered by at least one task.** If any gaps exist, either add tasks to cover them or flag and discuss with the user.
 
-### Step 6: Identify parallelism groups
+### Step 6: Determine task dependencies and parallelism groups
+
+#### Determine intra-feature dependencies
+
+Use the contracts and floorplan to identify which tasks depend on which within the feature:
+
+1. **Data dependencies**: if task A implements an ENT schema that task B's API operations reference, B depends on A (hard).
+2. **API dependencies**: if task A implements an API that task B consumes (visible in BD edges and SL diagrams), B depends on A (hard).
+3. **Event dependencies**: if task A emits an EVT that task B handles, B depends on A (soft — can develop in parallel with a stub).
+4. **Ordering from the feature index**: the feature PRD's dependency section and the index's suggested implementation phases provide additional ordering signals. Use these to confirm or supplement contract-derived dependencies.
+
+If two tasks within the same feature touch the same COMP (which should be rare given the single-COMP guardrail), they must be sequenced — one blocks the other.
+
+#### Group into parallelism phases
 
 Group the feature's tasks by what can run in parallel:
 
@@ -227,9 +255,12 @@ If no epic-type issue exists in `br` for this EP:
 ```bash
 br create --type epic --title "EPX: [epic name]" \
   --labels "ep:EPX" \
+  --priority [P0-P4] \
   --description "[epic description from feature index]" \
   --silent
 ```
+
+Set the epic's priority to the highest priority of its child tasks.
 
 Capture the issue ID for parent-child linking.
 
@@ -241,31 +272,31 @@ For each feature being committed that doesn't already have a feature-type issue:
 br create --type feature --title "FTY: [feature name]" \
   --parent [epic-issue-id] \
   --labels "ep:EPX,ft:FTY" \
+  --priority [P0-P4] \
   --description "[feature description from feature index]" \
   --silent
 ```
+
+Set the feature's priority to the highest priority of its child tasks.
 
 Capture the issue ID for parent-child linking.
 
 ### Create task issues
 
-For each task:
+For each task, create the issue and then set fields that `br create` doesn't support directly:
 
 ```bash
+# Step 1: Create the issue (captures the issue ID via --silent)
 br create --type task --title "[task title]" \
   --parent [feature-issue-id] \
   --labels "ep:EPX,ft:FTY,fr:FRZ,comp:COMPN" \
   --external-ref "FRZ" \
+  --priority [P0-P4] \
   --description "[task description]" \
-  --design "[rich pointer set]" \
-  --acceptance-criteria "[acceptance criteria]" \
   --silent
-```
 
-Note: `br create` does not support `--design` or `--acceptance-criteria` flags directly. After creating the issue, use `br update` to set these fields:
-
-```bash
-br update [task-issue-id] --design "[rich pointer set]"
+# Step 2: Set design and acceptance criteria (not available on br create)
+br update [task-issue-id] --design "[reference pointers]"
 br update [task-issue-id] --acceptance-criteria "[acceptance criteria]"
 ```
 
@@ -291,7 +322,16 @@ br dep add [blocked-task-id] [blocking-task-id] \
 
 ### Add cross-feature dependencies
 
-If a task depends on a task in a different feature (from the feature-level dependency graph), add those dependencies as well. Use `br list --labels "ft:FTN" --json` to find the relevant task IDs.
+If a task depends on work in a different feature (from the feature-level dependency graph), add a `blocks` dependency. To find the right target:
+
+1. If the other feature has already been taskified, find the specific task that produces the interface this task consumes — match on shared contract elements (ENT/API/EVT identifiers) in the `fr:` labels or design field.
+2. If no specific task can be identified, or the other feature hasn't been taskified yet, **fall back to the feature-level issue itself** as the dependency target. This ensures the dependency is tracked even before the blocking feature's tasks exist.
+
+```bash
+br dep add [this-task-id] [other-feature-issue-id] \
+  --type blocks \
+  --metadata '{"strength": "hard", "reason": "requires FT2 API1.3 interface"}'
+```
 
 ### Confirm success
 
@@ -340,4 +380,9 @@ After validation (or if the user skips it):
 - Do NOT create tasks without user review and confirmation
 - Do NOT invent requirements — tasks must trace back to FRs, contracts, and floorplan elements. If coverage is incomplete, flag the gap rather than filling it with assumptions
 - When a feature has already been taskified (feature-type issue exists in `br`), skip it unless the user explicitly asks to re-taskify
+- **Re-taskification**: when the user asks to re-taskify a feature, do NOT delete existing tasks. Instead:
+  1. Create new tasks first (so references exist before updating old ones)
+  2. For tasks not yet started (`open` status): update them in place if the change is minor, or close them with `close_reason` noting the superseding task (e.g., "Superseded by [new-task-id]")
+  3. For tasks in progress (`in_progress` status): update their description, design, and acceptance criteria to reflect changed requirements. Do not close active work without user confirmation.
+  4. Use `br dep add [old-task-id] [new-task-id] --type supersedes` to link old → new when replacing tasks
 - Prefer precision over verbosity in task descriptions — the design field carries the detailed pointers, the description carries the narrative

@@ -1,5 +1,11 @@
 # Changelog
 
+## starchitect 0.8.0
+
+### Refactors
+
+- Replace all references to br (beads_rust) with bd (beads) across skills, design docs, and changelog ([e9dbdac](https://github.com/visigoth/marketplace/commit/e9dbdac))
+
 ## starchitect 0.7.0
 
 ### Features

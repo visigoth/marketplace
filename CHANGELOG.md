@@ -10,7 +10,7 @@
 
 ### Fixes
 
-- Improve bv-taskify skill for production readiness — priority assignment (P0-P4) with rules table, intra-feature dependency logic, cross-feature dep fallback to feature-level issues, design field as reference pointers, re-taskification guidance, fixed br create example ([378141b](https://github.com/visigoth/marketplace/commit/378141b))
+- Improve bv-taskify skill for production readiness — priority assignment (P0-P4) with rules table, intra-feature dependency logic, cross-feature dep fallback to feature-level issues, design field as reference pointers, re-taskification guidance, fixed bd create example ([378141b](https://github.com/visigoth/marketplace/commit/378141b))
 
 ## starchitect 0.5.0
 
@@ -28,7 +28,7 @@
 
 ### Features
 
-- Add bv-taskify skill for feature-to-task decomposition — component-scoped task hierarchies in br (beads) with lazy document loading, parallelism-aware dependencies, and FR coverage tracking ([f9d402e](https://github.com/visigoth/marketplace/commit/f9d402e))
+- Add bv-taskify skill for feature-to-task decomposition — component-scoped task hierarchies in bd (beads) with lazy document loading, parallelism-aware dependencies, and FR coverage tracking ([f9d402e](https://github.com/visigoth/marketplace/commit/f9d402e))
 
 ## starchitect 0.2.0
 

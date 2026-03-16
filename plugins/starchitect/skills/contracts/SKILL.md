@@ -455,7 +455,7 @@ If multiple feature-scoped contracts exist when running this skill:
 
 After writing, tell the user:
 - "Your contracts are documented. Next steps you might consider:"
-  - Run the bv-taskify skill to decompose features into implementation task hierarchies in br (beads) — contracts inform the task boundaries and acceptance criteria
+  - Run the bv-taskify skill to decompose features into implementation task hierarchies in bd (beads) — contracts inform the task boundaries and acceptance criteria
   - Run the tech-plan skill to make technology decisions informed by these contracts
   - Review with your team — the traceability matrices make it easy to verify coverage
 

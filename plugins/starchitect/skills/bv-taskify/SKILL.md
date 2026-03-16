@@ -1,7 +1,7 @@
 ---
 name: starchitect:bv-taskify
 description: >
-  Break features into implementation task hierarchies in br (beads). Reads the feature index,
+  Break features into implementation task hierarchies in bd (beads). Reads the feature index,
   then lazily loads feature PRDs, floorplan, contracts, and technology choices as needed.
   Produces component-scoped tasks with dependencies that expose parallelizable work for agents.
   Triggers: "taskify", "create tasks", "break into tasks", "implementation tasks",
@@ -11,12 +11,12 @@ user-invocable: true
 
 # bv-taskify: Features to Implementation Tasks
 
-Decompose features into implementation task hierarchies in `br` (beads). Each task is scoped to a single architectural component (COMP) so that agents can work in parallel without file conflicts. Contracts define the interfaces agents code against.
+Decompose features into implementation task hierarchies in `bd` (beads). Each task is scoped to a single architectural component (COMP) so that agents can work in parallel without file conflicts. Contracts define the interfaces agents code against.
 
-Your output is `br` issues — epics, features, and tasks with structured fields, dependencies, and traceability back to the PRD, floorplan, and contracts.
+Your output is `bd` issues — epics, features, and tasks with structured fields, dependencies, and traceability back to the PRD, floorplan, and contracts.
 
 <HARD-GATE>
-Do NOT skip to creating tasks. Every task hierarchy must be presented to the user for review and confirmation before writing to `br`. Do NOT load all documents upfront — load lazily as each feature is visited.
+Do NOT skip to creating tasks. Every task hierarchy must be presented to the user for review and confirmation before writing to `bd`. Do NOT load all documents upfront — load lazily as each feature is visited.
 </HARD-GATE>
 
 ## Checklist
@@ -25,7 +25,7 @@ You MUST create a task for each of these items and complete them in order:
 
 1. **Discover & scope** — check for beads, load feature index only, determine which epic to taskify next
 2. **Decompose features into tasks** — per feature: lazy-load docs, analyze FRs + contracts + floorplan, produce component-scoped tasks
-3. **Review & commit** — present per-feature, offer commit checkpoints, write to `br` when user confirms
+3. **Review & commit** — present per-feature, offer commit checkpoints, write to `bd` when user confirms
 4. **Validate** — after epic is fully committed, offer `bv --robot-plan` validation
 
 ---
@@ -37,7 +37,7 @@ You MUST create a task for each of these items and complete them in order:
 Check for a `.beads/` directory in the project root.
 
 If not found:
-- Tell the user: "No beads workspace found. Run `br init` to initialize one, then re-run this skill."
+- Tell the user: "No beads workspace found. Run `bd init` to initialize one, then re-run this skill."
 - Stop here.
 
 ### Load the feature index
@@ -58,14 +58,14 @@ If not found:
 
 ### Determine what's already taskified
 
-Query `br` for existing issues:
+Query `bd` for existing issues:
 
 ```bash
-br list --type epic --json
-br list --type feature --json
+bd list --type epic --json
+bd list --type feature --json
 ```
 
-From the results, determine which epics and features already have corresponding issues in `br`. A feature is considered taskified if a `feature`-type issue with a matching `ft:FTN` label exists.
+From the results, determine which epics and features already have corresponding issues in `bd`. A feature is considered taskified if a `feature`-type issue with a matching `ft:FTN` label exists.
 
 ### Identify the next epic to taskify
 
@@ -222,11 +222,11 @@ After decomposing a feature, present to the user:
 
 After the user reviews and confirms the feature's tasks, prompt:
 
-"Commit these **N tasks** for **FTY — [feature name]** to br now?
+"Commit these **N tasks** for **FTY — [feature name]** to bd now?
 (**M features** remaining in EPX, **K tasks** generated so far across **L features**)"
 
 The user can:
-- **Commit now** — tasks are written to `br` immediately (proceed to Phase 3 for this batch)
+- **Commit now** — tasks are written to `bd` immediately (proceed to Phase 3 for this batch)
 - **Defer** — tasks are held; continue to the next feature
 - **Adjust** — modify tasks before committing or deferring
 
@@ -239,21 +239,21 @@ After reviewing all features in the epic, if there are uncommitted tasks, prompt
 "**N tasks** across **M features** are ready to commit for **EPX — [epic name]**. Commit all now?"
 
 <HARD-GATE>
-Do NOT write any issues to `br` until the user has explicitly confirmed the commit.
+Do NOT write any issues to `bd` until the user has explicitly confirmed the commit.
 </HARD-GATE>
 
 ---
 
-## Phase 3: Write to `br`
+## Phase 3: Write to `bd`
 
 When the user confirms a commit (either per-feature or per-epic):
 
 ### Create the epic issue (if needed)
 
-If no epic-type issue exists in `br` for this EP:
+If no epic-type issue exists in `bd` for this EP:
 
 ```bash
-br create --type epic --title "EPX: [epic name]" \
+bd create --type epic --title "EPX: [epic name]" \
   --labels "ep:EPX" \
   --priority [P0-P4] \
   --description "[epic description from feature index]" \
@@ -269,7 +269,7 @@ Capture the issue ID for parent-child linking.
 For each feature being committed that doesn't already have a feature-type issue:
 
 ```bash
-br create --type feature --title "FTY: [feature name]" \
+bd create --type feature --title "FTY: [feature name]" \
   --parent [epic-issue-id] \
   --labels "ep:EPX,ft:FTY" \
   --priority [P0-P4] \
@@ -283,11 +283,11 @@ Capture the issue ID for parent-child linking.
 
 ### Create task issues
 
-For each task, create the issue and then set fields that `br create` doesn't support directly:
+For each task, create the issue and then set fields that `bd create` doesn't support directly:
 
 ```bash
 # Step 1: Create the issue (captures the issue ID via --silent)
-br create --type task --title "[task title]" \
+bd create --type task --title "[task title]" \
   --parent [feature-issue-id] \
   --labels "ep:EPX,ft:FTY,fr:FRZ,comp:COMPN" \
   --external-ref "FRZ" \
@@ -295,9 +295,9 @@ br create --type task --title "[task title]" \
   --description "[task description]" \
   --silent
 
-# Step 2: Set design and acceptance criteria (not available on br create)
-br update [task-issue-id] --design "[reference pointers]"
-br update [task-issue-id] --acceptance-criteria "[acceptance criteria]"
+# Step 2: Set design and acceptance criteria (not available on bd create)
+bd update [task-issue-id] --design "[reference pointers]"
+bd update [task-issue-id] --acceptance-criteria "[acceptance criteria]"
 ```
 
 Capture each task's issue ID for dependency linking.
@@ -307,7 +307,7 @@ Capture each task's issue ID for dependency linking.
 For each dependency relationship between tasks:
 
 ```bash
-br dep add [blocked-task-id] [blocking-task-id] \
+bd dep add [blocked-task-id] [blocking-task-id] \
   --type blocks \
   --metadata '{"strength": "hard"}'
 ```
@@ -315,7 +315,7 @@ br dep add [blocked-task-id] [blocking-task-id] \
 Or for soft dependencies:
 
 ```bash
-br dep add [blocked-task-id] [blocking-task-id] \
+bd dep add [blocked-task-id] [blocking-task-id] \
   --type blocks \
   --metadata '{"strength": "soft"}'
 ```
@@ -328,7 +328,7 @@ If a task depends on work in a different feature (from the feature-level depende
 2. If no specific task can be identified, or the other feature hasn't been taskified yet, **fall back to the feature-level issue itself** as the dependency target. This ensures the dependency is tracked even before the blocking feature's tasks exist.
 
 ```bash
-br dep add [this-task-id] [other-feature-issue-id] \
+bd dep add [this-task-id] [other-feature-issue-id] \
   --type blocks \
   --metadata '{"strength": "hard", "reason": "requires FT2 API1.3 interface"}'
 ```
@@ -363,10 +363,10 @@ Report any issues found:
 
 After validation (or if the user skips it):
 
-- "Your tasks are in br. Next steps you might consider:"
+- "Your tasks are in bd. Next steps you might consider:"
   - Run `bv --robot-priority` to see recommended task ordering
-  - Use `br ready` to find tasks with no blockers — these can start immediately
-  - Assign tasks to agents with `br update [id] --assignee [agent]`
+  - Use `bd ready` to find tasks with no blockers — these can start immediately
+  - Assign tasks to agents with `bd update [id] --assignee [agent]`
   - Run this skill again for the next epic in dependency order
   - Use `bv` TUI for an interactive view of the task graph
 
@@ -374,15 +374,15 @@ After validation (or if the user skips it):
 
 ## Important Constraints
 
-- Your ONLY output is `br` issues (or interview/review questions when gathering context)
-- Do NOT write code, create implementation plans, or produce any artifact other than `br` issues
+- Your ONLY output is `bd` issues (or interview/review questions when gathering context)
+- Do NOT write code, create implementation plans, or produce any artifact other than `bd` issues
 - Do NOT load all starchitect documents upfront — lazy-load per-feature to conserve context
 - Do NOT create tasks without user review and confirmation
 - Do NOT invent requirements — tasks must trace back to FRs, contracts, and floorplan elements. If coverage is incomplete, flag the gap rather than filling it with assumptions
-- When a feature has already been taskified (feature-type issue exists in `br`), skip it unless the user explicitly asks to re-taskify
+- When a feature has already been taskified (feature-type issue exists in `bd`), skip it unless the user explicitly asks to re-taskify
 - **Re-taskification**: when the user asks to re-taskify a feature, do NOT delete existing tasks. Instead:
   1. Create new tasks first (so references exist before updating old ones)
   2. For tasks not yet started (`open` status): update them in place if the change is minor, or close them with `close_reason` noting the superseding task (e.g., "Superseded by [new-task-id]")
   3. For tasks in progress (`in_progress` status): update their description, design, and acceptance criteria to reflect changed requirements. Do not close active work without user confirmation.
-  4. Use `br dep add [old-task-id] [new-task-id] --type supersedes` to link old → new when replacing tasks
+  4. Use `bd dep add [old-task-id] [new-task-id] --type supersedes` to link old → new when replacing tasks
 - Prefer precision over verbosity in task descriptions — the design field carries the detailed pointers, the description carries the narrative

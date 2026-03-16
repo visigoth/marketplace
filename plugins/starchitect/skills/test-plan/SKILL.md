@@ -11,10 +11,10 @@ user-invocable: true
 
 # test-plan: Task Hierarchies to Test Specifications
 
-Produce test specifications from PRDs, contracts, and task hierarchies in `br` (beads). For each feature, analyze functional requirements and contracts to determine what needs testing, then add unit test specs directly to existing implementation tasks and create separate test tasks for integration, e2e, and UX tests. The result is a complete test plan with traceability from every FR back to specific test specifications.
+Produce test specifications from PRDs, contracts, and task hierarchies in `bd` (beads). For each feature, analyze functional requirements and contracts to determine what needs testing, then add unit test specs directly to existing implementation tasks and create separate test tasks for integration, e2e, and UX tests. The result is a complete test plan with traceability from every FR back to specific test specifications.
 
 <HARD-GATE>
-Do NOT skip to writing — every test specification must be presented to the user for review and confirmation before writing to `br` or documents. Do NOT load all documents upfront — load lazily as each feature is visited.
+Do NOT skip to writing — every test specification must be presented to the user for review and confirmation before writing to `bd` or documents. Do NOT load all documents upfront — load lazily as each feature is visited.
 </HARD-GATE>
 
 ## Checklist
@@ -25,7 +25,7 @@ You MUST create a task for each of these items and complete them in order:
 2. **Analyze test needs** — per feature: lazy-load docs, identify test types (unit, integration, e2e, UX), present for confirmation
 3. **Produce test specifications** — per feature: unit test specs for impl tasks, test task specs for integration/e2e/UX, coverage matrix
 4. **Write documents** — create/update test plan index and per-feature detail files
-5. **Write to br** — update impl tasks with unit test specs, create test tasks for integration/e2e/UX, add dependencies
+5. **Write to bd** — update impl tasks with unit test specs, create test tasks for integration/e2e/UX, add dependencies
 6. **Validate** — offer `bv --robot-plan` validation, suggest next steps
 
 ---
@@ -37,7 +37,7 @@ You MUST create a task for each of these items and complete them in order:
 Check for a `.beads/` directory in the project root.
 
 If not found:
-- Tell the user: "No beads workspace found. Run `br init` to initialize one, then re-run this skill."
+- Tell the user: "No beads workspace found. Run `bd init` to initialize one, then re-run this skill."
 - Stop here.
 
 ### Load the feature index
@@ -73,14 +73,14 @@ If found:
 If not found:
 - Note this is the first run. No existing test plan to build on.
 
-### Query `br` for existing hierarchy
+### Query `bd` for existing hierarchy
 
-Query `br` for existing issues to understand what has been taskified and what already has test coverage:
+Query `bd` for existing issues to understand what has been taskified and what already has test coverage:
 
 ```bash
-br list --type epic --json
-br list --type feature --json
-br list --type task --json
+bd list --type epic --json
+bd list --type feature --json
+bd list --type task --json
 ```
 
 From the results, specifically look for tasks with `test:*` labels. A feature is considered **test-planned** if it has at least one task with a `test:` label (e.g., `test:unit`, `test:integration`, `test:e2e`, `test:ux`).
@@ -137,10 +137,10 @@ Do NOT read these documents in full. Read them and extract only the sections rel
 
 ### Step 3: Load implementation tasks
 
-Query `br` for tasks associated with this feature:
+Query `bd` for tasks associated with this feature:
 
 ```bash
-br list --labels "ft:FTY" --type task --json
+bd list --labels "ft:FTY" --type task --json
 ```
 
 These are the implementation tasks from bv-taskify. Extract: task IDs, titles, COMP labels, FR labels, acceptance criteria, design pointers.
@@ -214,7 +214,7 @@ Cover these categories for each task:
 - **Error cases**: failure modes from the API operations and ENT constraints the task implements
 - **Edge cases**: boundary conditions called out in the PRD acceptance criteria or contract schemas (e.g., max-length fields, empty collections, concurrent modifications)
 
-These scenarios will be added to the task's description field via `br update` in Phase 4.
+These scenarios will be added to the task's description field via `bd update` in Phase 4.
 
 Present as a table or list per implementation task showing the scenario descriptions:
 
@@ -350,7 +350,7 @@ Contents:
 
 #### Feature detail file structure
 
-Per-feature files (`docs/test-plan/<feature-name>.{org,md}`) contain ONLY non-obvious scenarios. Routine unit/integration tests are NOT enumerated — those live in the `br` task descriptions.
+Per-feature files (`docs/test-plan/<feature-name>.{org,md}`) contain ONLY non-obvious scenarios. Routine unit/integration tests are NOT enumerated — those live in the `bd` task descriptions.
 
 Each documented scenario includes:
 - **Title**
@@ -366,7 +366,7 @@ Each documented scenario includes:
 
 - **First run (any scope)**: create index + feature file(s) for whatever's in scope
 - **Subsequent runs**: update the relevant feature file and the index's coverage table. Don't recreate the index strategy sections.
-- **Task scope**: no document output (just br updates in Phase 4)
+- **Task scope**: no document output (just bd updates in Phase 4)
 
 ### Step 4: Present and write
 
@@ -378,7 +378,7 @@ Do NOT write to disk until the user has reviewed and approved.
 
 ---
 
-## Phase 4: Write to `br`
+## Phase 4: Write to `bd`
 
 When user confirms a commit (either per-feature from Phase 2 or batch):
 
@@ -389,13 +389,13 @@ For each implementation task that received unit test specs, append the test scen
 First, read the existing description:
 
 ```bash
-br show [task-id] --json
+bd show [task-id] --json
 ```
 
 Then append a "## Test Scenarios" section to the existing description. Do NOT overwrite the existing description — preserve it and append the new section.
 
 ```bash
-br update [task-id] --description "[existing description + appended test scenarios section]"
+bd update [task-id] --description "[existing description + appended test scenarios section]"
 ```
 
 Format the appended section:
@@ -409,11 +409,11 @@ Format the appended section:
 
 ### Step 2: Create test tasks
 
-For each integration/e2e/UX test task, follow a two-step create+update pattern (same as bv-taskify — `br create` doesn't support `--acceptance-criteria` or `--design` flags):
+For each integration/e2e/UX test task, follow a two-step create+update pattern (same as bv-taskify — `bd create` doesn't support `--acceptance-criteria` or `--design` flags):
 
 ```bash
 # Step 1: Create the issue
-br create --type task --title "[test task title]" \
+bd create --type task --title "[test task title]" \
   --parent [feature-issue-id] \
   --labels "ep:EPX,ft:FTY,test:integration,comp:COMPN" \
   --external-ref "FRZ" \
@@ -421,9 +421,9 @@ br create --type task --title "[test task title]" \
   --description "[test description]" \
   --silent
 
-# Step 2: Set acceptance criteria and design (not available on br create)
-br update [test-task-id] --acceptance-criteria "[test scenarios with expected outcomes]"
-br update [test-task-id] --design "[reference pointers to test-plan doc, contracts, swim lanes]"
+# Step 2: Set acceptance criteria and design (not available on bd create)
+bd update [test-task-id] --acceptance-criteria "[test scenarios with expected outcomes]"
+bd update [test-task-id] --design "[reference pointers to test-plan doc, contracts, swim lanes]"
 ```
 
 ### Step 3: Add dependencies
@@ -431,7 +431,7 @@ br update [test-task-id] --design "[reference pointers to test-plan doc, contrac
 For each test task, add a blocks dependency on the implementation tasks it requires:
 
 ```bash
-br dep add [test-task-id] [impl-task-id] \
+bd dep add [test-task-id] [impl-task-id] \
   --type blocks \
   --metadata '{"strength": "hard", "reason": "test requires implementation complete"}'
 ```
@@ -439,7 +439,7 @@ br dep add [test-task-id] [impl-task-id] \
 For cross-feature test dependencies (e.g., an e2e test that spans features), follow the same fallback pattern as bv-taskify: if the other feature's tasks exist, depend on the specific task; otherwise fall back to the feature-level issue.
 
 ```bash
-br dep add [test-task-id] [other-feature-task-or-issue-id] \
+bd dep add [test-task-id] [other-feature-task-or-issue-id] \
   --type blocks \
   --metadata '{"strength": "hard", "reason": "test requires cross-feature implementation complete"}'
 ```
@@ -448,7 +448,7 @@ br dep add [test-task-id] [other-feature-task-or-issue-id] \
 
 Present before writing:
 
-"Write **N unit test spec updates** and **M new test tasks** with **K dependencies** for **FTY — [feature name]** to br now?"
+"Write **N unit test spec updates** and **M new test tasks** with **K dependencies** for **FTY — [feature name]** to bd now?"
 
 <HARD-GATE>
 Do NOT write any issues until user confirms.
@@ -552,13 +552,13 @@ Coverage expectations per test type:
 
 ### Detail file template — feature (`docs/test-plan/<feature-name>.{org,md}`):
 
-Contains only non-obvious scenarios identified by the complexity heuristics in Phase 2, Step 4. Each scenario includes title, test type, description, COMPs involved, contract/PRD references, setup requirements, expected behavior, and which heuristic triggered documentation. Routine unit/integration tests are NOT included — those live in `br` task descriptions.
+Contains only non-obvious scenarios identified by the complexity heuristics in Phase 2, Step 4. Each scenario includes title, test type, description, COMPs involved, contract/PRD references, setup requirements, expected behavior, and which heuristic triggered documentation. Routine unit/integration tests are NOT included — those live in `bd` task descriptions.
 
 ---
 
 ## Phase 5: Validate
 
-After all test specs for the epic are written to `br`, offer:
+After all test specs for the epic are written to `bd`, offer:
 
 "All test specifications for **EPX — [epic name]** are committed. Would you like me to run `bv --robot-plan` to validate the dependency graph?"
 
@@ -577,10 +577,10 @@ Report any issues found:
 
 After validation (or if the user skips it):
 
-- "Your test specifications are in br. Next steps you might consider:"
+- "Your test specifications are in bd. Next steps you might consider:"
   - Run `bv --robot-priority` to see recommended task ordering (implementation before tests)
-  - Use `br ready` to find tasks with no blockers
-  - Assign tasks to agents with `br update [id] --assignee [agent]`
+  - Use `bd ready` to find tasks with no blockers
+  - Assign tasks to agents with `bd update [id] --assignee [agent]`
   - Run this skill again for the next epic in dependency order
   - Use `bv` TUI for an interactive view of the task graph
 
@@ -588,12 +588,12 @@ After validation (or if the user skips it):
 
 ## Important Constraints
 
-- Your output is `br` updates/issues and test plan documents ONLY
+- Your output is `bd` updates/issues and test plan documents ONLY
 - Do NOT write test code, test frameworks, CI configuration, or any implementation artifacts
 - Do NOT load all starchitect documents upfront — lazy-load per-feature to conserve context
 - Do NOT create test specs without user review and confirmation
 - Do NOT invent test scenarios — trace back to FRs, contracts, floorplan elements, and swim lanes. If coverage is incomplete, flag the gap rather than filling it with assumptions
-- When a feature already has test tasks (tasks with `test:*` labels exist in `br`), skip it unless the user explicitly asks to re-plan
+- When a feature already has test tasks (tasks with `test:*` labels exist in `bd`), skip it unless the user explicitly asks to re-plan
 - Test infrastructure (frameworks, environments, CI) is out of scope — that's floorplan and tech-plan territory
 - Prefer precision over verbosity in test scenario descriptions — cite the specific contract elements, don't repeat the contract content
 - Unit test specs augment existing implementation tasks; they do NOT create new tasks

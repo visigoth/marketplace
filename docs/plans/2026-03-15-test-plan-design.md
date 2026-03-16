@@ -17,7 +17,7 @@ Runs after bv-taskify. Reads the existing task hierarchy plus all upstream docum
 - Contracts (index + detail files)
 - Floorplan (COMP boundaries, BD edges, SL diagrams)
 - Technology choices
-- Existing `br` task hierarchy (epics, features, implementation tasks)
+- Existing `bd` task hierarchy (epics, features, implementation tasks)
 - Existing codebase (test frameworks, existing tests)
 
 ## Test Types
@@ -72,7 +72,7 @@ Routine unit/integration tests are NOT enumerated — they're implied by accepta
 
 Test infrastructure (frameworks, environments, CI configuration) — that's floorplan and tech-plan territory.
 
-## Output: `br` Tasks
+## Output: `bd` Tasks
 
 ### Unit tests: added to existing implementation tasks
 
@@ -80,7 +80,7 @@ Unit test specifications are added to the implementation task's description fiel
 
 bv-taskify already includes "New tests cover all acceptance criteria above" in acceptance criteria. test-plan adds the specifics of *what* tests to write.
 
-### Integration, E2E, UX tests: separate `br` tasks
+### Integration, E2E, UX tests: separate `bd` tasks
 
 ```
 Feature (feature)
@@ -105,7 +105,7 @@ Test tasks are siblings of implementation tasks under the feature, with `blocks`
 
 ### Phase 0: Discover & Scope
 
-- Load feature index, check `br` for existing tasks and test tasks
+- Load feature index, check `bd` for existing tasks and test tasks
 - Determine scope (epic/feature/task) — follow dependency order like bv-taskify
 - Check for existing test plan documents
 - Present recommendation to user
@@ -117,7 +117,7 @@ HARD-GATE: user confirms scope before proceeding.
 Per feature (lazy-load docs as needed):
 
 - Load feature PRD, contracts, floorplan sections relevant to this feature
-- Load existing implementation tasks from `br`
+- Load existing implementation tasks from `bd`
 - Identify which test types apply (core four always, conditional based on signals)
 - Present activated test types with reasoning; user confirms/adjusts
 
@@ -148,14 +148,14 @@ HARD-GATE: user confirms test specs before proceeding.
 
 HARD-GATE: user approves before writing.
 
-### Phase 4: Write to `br`
+### Phase 4: Write to `bd`
 
-- Update implementation tasks with unit test specifications (via `br update`)
+- Update implementation tasks with unit test specifications (via `bd update`)
 - Create test tasks for integration/e2e/UX tests
 - Add `blocks` dependencies from test tasks to implementation tasks
 - Report results
 
-HARD-GATE: user confirms before writing to `br`.
+HARD-GATE: user confirms before writing to `bd`.
 
 ### Phase 5: Validate
 
@@ -169,7 +169,7 @@ HARD-GATE: user confirms before writing to `br`.
 - **Subsequent runs**: update the relevant feature file and the index's coverage table; don't recreate the index
 - **Epic scope**: walks all features in the epic
 - **Feature scope**: processes just that feature
-- **Task scope**: adds unit test specs to a single implementation task (no document output, just `br` update)
+- **Task scope**: adds unit test specs to a single implementation task (no document output, just `bd` update)
 
 ## Complexity Heuristics
 

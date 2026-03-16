@@ -4,9 +4,9 @@
 
 **Goal:** Create the `test-plan` skill for the starchitect plugin — the final stage of the pipeline that produces test specifications from PRDs, contracts, and the existing task hierarchy.
 
-**Architecture:** Single SKILL.md file following the starchitect convention (frontmatter, HARD-GATEs, phased pipeline with lazy loading and user review). Split output: compact index + per-feature detail files. Updates to existing implementation tasks via `br update`, plus new test tasks via `br create`.
+**Architecture:** Single SKILL.md file following the starchitect convention (frontmatter, HARD-GATEs, phased pipeline with lazy loading and user review). Split output: compact index + per-feature detail files. Updates to existing implementation tasks via `bd update`, plus new test tasks via `bd create`.
 
-**Tech Stack:** Markdown skill definition, `br` CLI for issue management, `bv` for validation.
+**Tech Stack:** Markdown skill definition, `bd` CLI for issue management, `bv` for validation.
 
 ---
 
@@ -44,7 +44,7 @@ This phase mirrors bv-taskify Phase 0 with additions for test context:
 1. **Check for beads** — same pattern as bv-taskify (check `.beads/`, stop if not found)
 2. **Load the feature index** — same locations as bv-taskify (`docs/features/index.{org,md}`)
 3. **Check for existing test plan** — search `docs/test-plan.{org,md}` and `docs/test-plan/` directory. If found, summarize current state. If not, note this is the first run (index will be created).
-4. **Query `br` for existing hierarchy** — list epics, features, and tasks. Specifically look for tasks with `test:*` labels to identify what's already test-planned.
+4. **Query `bd` for existing hierarchy** — list epics, features, and tasks. Specifically look for tasks with `test:*` labels to identify what's already test-planned.
 5. **Determine scope** — follow dependency order (like bv-taskify). First epic with un-test-planned features is the recommendation. User can override to epic/feature/task scope.
 6. **Present scope recommendation** — show what's done, what's next, let user confirm.
 7. HARD-GATE before proceeding.
@@ -69,7 +69,7 @@ Per feature (lazy-load docs):
 
 1. **Load feature PRD** — from `docs/features/<feature-name>.{org,md}`. Extract FRs, COMP identifiers, contract references.
 2. **Load supporting documents on-demand** — same table pattern as bv-taskify (contracts index → detail files, floorplan, technology choices). Only load sections relevant to this feature.
-3. **Load implementation tasks** — `br list --labels "ft:FTY" --type task --json`. These are the tasks from bv-taskify.
+3. **Load implementation tasks** — `bd list --labels "ft:FTY" --type task --json`. These are the tasks from bv-taskify.
 4. **Identify applicable test types** — core four are always present. Check for conditional signals:
    - Contract tests: multiple COMPs implement the same API boundary
    - Performance tests: PRD has throughput/latency AC constraints
@@ -97,7 +97,7 @@ For each implementation task:
 - Draft test scenario descriptions with contract references
 - Format: natural language scenario + the ENT/API/EVT identifiers being validated
 - Example: "Test that creating a user with duplicate email returns 409 Conflict (API1.2 error case, ENT1.email uniqueness constraint)"
-- These will be added to the task's description field via `br update`
+- These will be added to the task's description field via `bd update`
 
 **Step 2: Write Phase 2 — integration/e2e/UX test task specifications**
 
@@ -192,41 +192,41 @@ git commit -m "feat(starchitect): test-plan Phase 3 — write documents"
 
 ---
 
-### Task 6: Write Phase 4 — Write to `br`
+### Task 6: Write Phase 4 — Write to `bd`
 
 **Files:**
 - Modify: `plugins/starchitect/skills/test-plan/SKILL.md`
 
-**Step 1: Write the `br update` flow for unit test specs**
+**Step 1: Write the `bd update` flow for unit test specs**
 
 For each implementation task that received unit test specs:
 
 ```bash
-br update [task-id] --description "[updated description with test scenarios appended]"
+bd update [task-id] --description "[updated description with test scenarios appended]"
 ```
 
 Show the pattern: append test scenarios to existing description, don't overwrite.
 
-**Step 2: Write the `br create` flow for test tasks**
+**Step 2: Write the `bd create` flow for test tasks**
 
 For each integration/e2e/UX test task:
 
 ```bash
-br create --type task --title "[test task title]" \
+bd create --type task --title "[test task title]" \
   --parent [feature-issue-id] \
   --labels "ep:EPX,ft:FTY,test:integration,comp:COMPN" \
   --priority [P0-P4] \
   --description "[test description]" \
   --silent
 
-br update [test-task-id] --acceptance-criteria "[test scenarios]"
-br update [test-task-id] --design "[reference pointers]"
+bd update [test-task-id] --acceptance-criteria "[test scenarios]"
+bd update [test-task-id] --design "[reference pointers]"
 ```
 
 **Step 3: Write the dependency creation flow**
 
 ```bash
-br dep add [test-task-id] [impl-task-id] \
+bd dep add [test-task-id] [impl-task-id] \
   --type blocks \
   --metadata '{"strength": "hard", "reason": "test requires implementation complete"}'
 ```
@@ -243,7 +243,7 @@ Report: tasks updated, test tasks created, dependencies added, any issues.
 
 ```bash
 git add plugins/starchitect/skills/test-plan/SKILL.md
-git commit -m "feat(starchitect): test-plan Phase 4 — write to br"
+git commit -m "feat(starchitect): test-plan Phase 4 — write to bd"
 ```
 
 ---
@@ -260,13 +260,13 @@ Offer `bv --robot-plan` to validate dependency graph after writing. Report cycle
 **Step 2: Write the "suggest next steps" section**
 
 - Run `bv --robot-priority` for task ordering
-- Use `br ready` to find unblocked tasks
+- Use `bd ready` to find unblocked tasks
 - Assign tasks to agents
 - Run test-plan again for the next epic
 
 **Step 3: Write the "Important Constraints" section**
 
-- Output is `br` updates/issues and test plan documents only
+- Output is `bd` updates/issues and test plan documents only
 - Do NOT write test code, test frameworks, or CI configuration
 - Lazy-load per-feature
 - Do NOT create test specs without user review

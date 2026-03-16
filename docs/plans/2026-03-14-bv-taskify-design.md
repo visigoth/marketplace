@@ -6,7 +6,7 @@
 
 ## Purpose
 
-Bridge the gap between product architecture (PRDs, floorplans, feature breakdowns, contracts) and actionable implementation tasks in `br` (beads). Decomposes features into component-scoped task hierarchies that expose maximum parallelism for agents working concurrently without file conflicts.
+Bridge the gap between product architecture (PRDs, floorplans, feature breakdowns, contracts) and actionable implementation tasks in `bd` (beads). Decomposes features into component-scoped task hierarchies that expose maximum parallelism for agents working concurrently without file conflicts.
 
 ## Position in the starchitect pipeline
 
@@ -45,11 +45,11 @@ Context is expensive. The skill loads documents incrementally:
 
 ### No auto-init
 
-The skill checks for `.beads/` and stops with guidance if missing. It does not run `br init`.
+The skill checks for `.beads/` and stops with guidance if missing. It does not run `bd init`.
 
 ## Traceability mapping
 
-| `br` field | Content |
+| `bd` field | Content |
 |------------|---------|
 | `issue_type` | `epic`, `feature`, or `task` |
 | `labels` | `ep:EPX`, `ft:FTY`, `fr:FRZ`, `comp:COMPN` |
@@ -76,10 +76,10 @@ Coverage is tracked across tasks within a feature. When presenting a feature's t
 
 ### Phase 0: Discover & scope
 
-1. Check for `.beads/` — if missing, tell user to run `br init` and stop
+1. Check for `.beads/` — if missing, tell user to run `bd init` and stop
 2. Load **only** `docs/features/index.{org,md}` — do not load feature PRDs, contracts, floorplan, or technology choices yet
-3. Query `br` for existing epic-type and feature-type issues to determine what's already been taskified
-4. From the index's dependency graph + existing issues in `br`, identify the next un-taskified epic in dependency order
+3. Query `bd` for existing epic-type and feature-type issues to determine what's already been taskified
+4. From the index's dependency graph + existing issues in `bd`, identify the next un-taskified epic in dependency order
 5. Present recommendation with context: which epics are done, which are blocked, what's next. Let user confirm or override scope
 
 ### Phase 1: Decompose (per feature, lazy-loaded)
@@ -99,20 +99,20 @@ For each in-scope feature:
 After decomposing each feature's tasks:
 
 1. Present the task hierarchy: tasks, dependencies, parallelism groups, coverage matrix
-2. Prompt: "Commit these N tasks for FTY — [name] to br now? (M features remaining in EPX, K tasks generated so far across L features)"
+2. Prompt: "Commit these N tasks for FTY — [name] to bd now? (M features remaining in EPX, K tasks generated so far across L features)"
 3. User can:
-   - **Commit now** — tasks are written to `br` immediately
+   - **Commit now** — tasks are written to `bd` immediately
    - **Defer** — tasks are held until more features are reviewed or the full epic is done
    - **Adjust** — modify tasks before committing
 
-### Phase 3: Write to `br`
+### Phase 3: Write to `bd`
 
 When user commits:
 
-1. Create epic issue (`issue_type=epic`) if it doesn't exist in `br` yet
+1. Create epic issue (`issue_type=epic`) if it doesn't exist in `bd` yet
 2. Create feature issue (`issue_type=feature`, `parent-child` dep to epic) if it doesn't exist
-3. Create task issues via `br create` with all structured fields, `parent-child` dep to feature
-4. Add `blocks` dependencies between tasks via `br dep add` with `--metadata` for hard/soft strength
+3. Create task issues via `bd create` with all structured fields, `parent-child` dep to feature
+4. Add `blocks` dependencies between tasks via `bd dep add` with `--metadata` for hard/soft strength
 5. After all tasks for the epic are committed, offer to run `bv --robot-plan` to validate the dependency graph
 
 ## Scope selection logic
@@ -120,8 +120,8 @@ When user commits:
 The skill determines the next epic to taskify by:
 
 1. Reading the implementation ordering / suggested phases from the feature index
-2. Querying `br` for existing epic and feature issues
-3. An epic is "fully taskified" if all its features have corresponding feature-type issues in `br`
+2. Querying `bd` for existing epic and feature issues
+3. An epic is "fully taskified" if all its features have corresponding feature-type issues in `bd`
 4. The next epic is the first in dependency order that is not fully taskified
 5. Within that epic, only features without existing feature-type issues are in scope
 

@@ -254,11 +254,13 @@ If no epic-type issue exists in `bd` for this EP:
 
 ```bash
 bd create --type epic --title "EPX: [epic name]" \
-  --labels "ep:EPX" \
+  --labels "ep:EPX,slug:[epic-slug]" \
   --priority [P0-P4] \
   --description "[epic description from feature index]" \
   --silent
 ```
+
+**Slug generation**: derive `[epic-slug]` by slugifying the epic name — lowercase, hyphens for spaces, no special characters. Shorten long titles to keep slugs concise (e.g., "User Authentication and Authorization System" → `user-auth`, "Real-time Notification Infrastructure" → `realtime-notifs`).
 
 Set the epic's priority to the highest priority of its child tasks.
 
@@ -271,11 +273,13 @@ For each feature being committed that doesn't already have a feature-type issue:
 ```bash
 bd create --type feature --title "FTY: [feature name]" \
   --parent [epic-issue-id] \
-  --labels "ep:EPX,ft:FTY" \
+  --labels "ep:EPX,ft:FTY,slug:[feature-slug]" \
   --priority [P0-P4] \
   --description "[feature description from feature index]" \
   --silent
 ```
+
+**Slug generation**: derive `[feature-slug]` by slugifying the feature name — lowercase, hyphens for spaces, no special characters. Shorten long titles to keep slugs concise (e.g., "OAuth2 Provider Integration" → `oauth2-provider`, "Password Reset via Email" → `password-reset`).
 
 Set the feature's priority to the highest priority of its child tasks.
 

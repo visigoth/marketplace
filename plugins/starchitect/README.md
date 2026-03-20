@@ -1,24 +1,24 @@
 # Starchitect
 
-A workflow for transforming product ideas into implementation-ready task hierarchies. Rather than jumping from PRD to code, Starchitect guides you through architecture, technology choices, contracts, feature decomposition, and test planning — each step building on the last.
+A workflow for transforming product ideas into implementation-ready task hierarchies. Rather than jumping from PRD to code, Starchitect guides you through architecture, technology choices, feature decomposition, contracts, and test planning — each step building on the last.
 
 ## Workflow Progression
 
 ```
-┌─────────────┐     ┌───────────┐     ┌───────────┐     ┌───────────┐
-│  prd-create │────▶│ floorplan │────▶│ tech-plan │────▶│ contracts │
-└─────────────┘     └───────────┘     └───────────┘     └───────────┘
-                                                               │
-       ┌───────────────────────────────────────────────────────┘
+┌─────────────┐     ┌───────────┐     ┌───────────┐     ┌───────────────────────┐
+│  prd-create │────▶│ floorplan │────▶│ tech-plan │────▶│ prd-feature-breakdown │
+└─────────────┘     └───────────┘     └───────────┘     └───────────────────────┘
+                                                                    │
+       ┌────────────────────────────────────────────────────────────┘
        ▼
-┌──────────────────────┐     ┌─────────────┐     ┌───────────┐
-│ prd-feature-breakdown│────▶│  beadify    │────▶│ test-plan │
-└──────────────────────┘     └─────────────┘     └───────────┘
-                                                       │
-                                                       ▼
-                                                 ┌───────────┐
-                                                 │ tech-plan │  (revisit)
-                                                 └───────────┘
+┌───────────┐     ┌─────────┐     ┌───────────┐
+│ contracts │────▶│ beadify │────▶│ test-plan │
+└───────────┘     └─────────┘     └───────────┘
+                                        │
+                                        ▼
+                                  ┌───────────┐
+                                  │ tech-plan │  (revisit)
+                                  └───────────┘
 ```
 
 ### 1. prd-create
@@ -33,13 +33,13 @@ Transform the PRD into an architectural floorplan: block diagrams showing compon
 
 Walk through each component in the floorplan and make technology decisions. The skill scans for existing tech in the repo, researches current options, presents trade-offs, and records your choices with rationale in `docs/technology.md`.
 
-### 4. contracts
-
-Define the interfaces between components: entity schemas, API operations, wire protocols, and async events. Uses the floorplan's edges and data flows as the starting point — each edge becomes an API or event contract.
-
-### 5. prd-feature-breakdown
+### 4. prd-feature-breakdown
 
 Break the PRD into epics and features. Identifies epic boundaries from capabilities and floorplan clusters, decomposes into features, analyzes dependencies, and generates feature-level PRDs with typed dependency graphs.
+
+### 5. contracts
+
+Define the interfaces between components: entity schemas, API operations, wire protocols, and async events. Uses the floorplan's edges and data flows as the starting point — each edge becomes an API or event contract. The feature index helps prioritize which API boundaries need the cleanest interfaces.
 
 ### 6. beadify
 

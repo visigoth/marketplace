@@ -6,10 +6,10 @@
 ## Position in Pipeline
 
 ```
-prd-create → floorplan → prd-feature-breakdown → contracts → bv-taskify → test-plan
+prd-create → floorplan → prd-feature-breakdown → contracts → beadify → test-plan
 ```
 
-Runs after bv-taskify. Reads the existing task hierarchy plus all upstream documents (PRDs, contracts, floorplan, technology choices). Can be scoped to epic, feature, or individual task level.
+Runs after beadify. Reads the existing task hierarchy plus all upstream documents (PRDs, contracts, floorplan, technology choices). Can be scoped to epic, feature, or individual task level.
 
 ## Inputs
 
@@ -78,7 +78,7 @@ Test infrastructure (frameworks, environments, CI configuration) — that's floo
 
 Unit test specifications are added to the implementation task's description field. Each spec is a test scenario description with contract references (e.g., "Test that API1.2 returns 409 when ENT1.email is duplicate per ENT1 uniqueness constraint").
 
-bv-taskify already includes "New tests cover all acceptance criteria above" in acceptance criteria. test-plan adds the specifics of *what* tests to write.
+beadify already includes "New tests cover all acceptance criteria above" in acceptance criteria. test-plan adds the specifics of *what* tests to write.
 
 ### Integration, E2E, UX tests: separate `bd` tasks
 
@@ -106,7 +106,7 @@ Test tasks are siblings of implementation tasks under the feature, with `blocks`
 ### Phase 0: Discover & Scope
 
 - Load feature index, check `bd` for existing tasks and test tasks
-- Determine scope (epic/feature/task) — follow dependency order like bv-taskify
+- Determine scope (epic/feature/task) — follow dependency order like beadify
 - Check for existing test plan documents
 - Present recommendation to user
 

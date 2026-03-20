@@ -17,7 +17,7 @@
 
 **Step 1: Write the frontmatter, intro, HARD-GATE, and checklist**
 
-Follow the pattern from bv-taskify/SKILL.md:
+Follow the pattern from beadify/SKILL.md:
 - Frontmatter: `name: starchitect:test-plan`, `user-invocable: true`, description with trigger words ("test plan", "test strategy", "testing", "write tests for")
 - One-paragraph intro: what the skill does (produces test specifications from PRDs, contracts, and task hierarchies)
 - Primary HARD-GATE: do NOT skip to writing — every test specification must be presented for user review
@@ -39,13 +39,13 @@ git commit -m "feat(starchitect): add test-plan skill skeleton"
 
 **Step 1: Write Phase 0**
 
-This phase mirrors bv-taskify Phase 0 with additions for test context:
+This phase mirrors beadify Phase 0 with additions for test context:
 
-1. **Check for beads** — same pattern as bv-taskify (check `.beads/`, stop if not found)
-2. **Load the feature index** — same locations as bv-taskify (`docs/features/index.{org,md}`)
+1. **Check for beads** — same pattern as beadify (check `.beads/`, stop if not found)
+2. **Load the feature index** — same locations as beadify (`docs/features/index.{org,md}`)
 3. **Check for existing test plan** — search `docs/test-plan.{org,md}` and `docs/test-plan/` directory. If found, summarize current state. If not, note this is the first run (index will be created).
 4. **Query `bd` for existing hierarchy** — list epics, features, and tasks. Specifically look for tasks with `test:*` labels to identify what's already test-planned.
-5. **Determine scope** — follow dependency order (like bv-taskify). First epic with un-test-planned features is the recommendation. User can override to epic/feature/task scope.
+5. **Determine scope** — follow dependency order (like beadify). First epic with un-test-planned features is the recommendation. User can override to epic/feature/task scope.
 6. **Present scope recommendation** — show what's done, what's next, let user confirm.
 7. HARD-GATE before proceeding.
 
@@ -68,8 +68,8 @@ git commit -m "feat(starchitect): test-plan Phase 0 — discover and scope"
 Per feature (lazy-load docs):
 
 1. **Load feature PRD** — from `docs/features/<feature-name>.{org,md}`. Extract FRs, COMP identifiers, contract references.
-2. **Load supporting documents on-demand** — same table pattern as bv-taskify (contracts index → detail files, floorplan, technology choices). Only load sections relevant to this feature.
-3. **Load implementation tasks** — `bd list --labels "ft:FTY" --type task --json`. These are the tasks from bv-taskify.
+2. **Load supporting documents on-demand** — same table pattern as beadify (contracts index → detail files, floorplan, technology choices). Only load sections relevant to this feature.
+3. **Load implementation tasks** — `bd list --labels "ft:FTY" --type task --json`. These are the tasks from beadify.
 4. **Identify applicable test types** — core four are always present. Check for conditional signals:
    - Contract tests: multiple COMPs implement the same API boundary
    - Performance tests: PRD has throughput/latency AC constraints
@@ -233,7 +233,7 @@ bd dep add [test-task-id] [impl-task-id] \
 
 **Step 4: Write the commit checkpoint and HARD-GATE**
 
-Same pattern as bv-taskify: present count of updates/creates, let user confirm before writing.
+Same pattern as beadify: present count of updates/creates, let user confirm before writing.
 
 **Step 5: Write the success report**
 
@@ -293,7 +293,7 @@ git commit -m "feat(starchitect): test-plan Phase 5 — validate and constraints
 
 Update the starchitect description in the Current Plugins table to include test-plan in the pipeline:
 ```
-Pipeline: PRD generation (prd-create) → architectural floorplans (floorplan) → feature decomposition (prd-feature-breakdown) → entity/API/protocol contracts (contracts) → task decomposition (bv-taskify) → test planning (test-plan). Also includes technology research (tech-plan).
+Pipeline: PRD generation (prd-create) → architectural floorplans (floorplan) → feature decomposition (prd-feature-breakdown) → entity/API/protocol contracts (contracts) → task decomposition (beadify) → test planning (test-plan). Also includes technology research (tech-plan).
 ```
 
 **Step 2: Bump version and update CHANGELOG**

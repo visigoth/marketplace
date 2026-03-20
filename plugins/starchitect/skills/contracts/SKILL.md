@@ -397,7 +397,7 @@ Do NOT write to disk until the user has reviewed and approved the traceability m
 
 ### Write to disk — split structure
 
-Contracts are **always** written as a split structure: a compact index file plus detail files in a subdirectory. This keeps the index small enough to always load into context, while detail files are loaded on-demand by downstream skills (bv-taskify, implementation agents).
+Contracts are **always** written as a split structure: a compact index file plus detail files in a subdirectory. This keeps the index small enough to always load into context, while detail files are loaded on-demand by downstream skills (beadify, implementation agents).
 
 **System-wide output:**
 
@@ -455,7 +455,7 @@ If multiple feature-scoped contracts exist when running this skill:
 
 After writing, tell the user:
 - "Your contracts are documented. Next steps you might consider:"
-  - Run the bv-taskify skill to decompose features into implementation task hierarchies in bd (beads) — contracts inform the task boundaries and acceptance criteria
+  - Run the beadify skill to decompose features into implementation task hierarchies in bd (beads) — contracts inform the task boundaries and acceptance criteria
   - Run the tech-plan skill to make technology decisions informed by these contracts
   - Review with your team — the traceability matrices make it easy to verify coverage
 

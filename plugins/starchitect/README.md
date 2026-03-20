@@ -12,7 +12,7 @@ A workflow for transforming product ideas into implementation-ready task hierarc
        ┌───────────────────────────────────────────────────────┘
        ▼
 ┌──────────────────────┐     ┌─────────────┐     ┌───────────┐
-│ prd-feature-breakdown│────▶│ bv-taskify  │────▶│ test-plan │
+│ prd-feature-breakdown│────▶│  beadify    │────▶│ test-plan │
 └──────────────────────┘     └─────────────┘     └───────────┘
                                                        │
                                                        ▼
@@ -41,7 +41,7 @@ Define the interfaces between components: entity schemas, API operations, wire p
 
 Break the PRD into epics and features. Identifies epic boundaries from capabilities and floorplan clusters, decomposes into features, analyzes dependencies, and generates feature-level PRDs with typed dependency graphs.
 
-### 6. bv-taskify
+### 6. beadify
 
 Convert features into implementation task hierarchies in beads (`bd`). Each task is scoped to a single component so agents can work in parallel without file conflicts. Tasks reference contracts, floorplan elements, and FRs for full traceability.
 
@@ -64,7 +64,7 @@ Each skill can be invoked by name or trigger phrase:
 | tech-plan | "tech plan", "technology choices", "what tech should we use" |
 | contracts | "contracts", "define the APIs", "entity model", "data schema" |
 | prd-feature-breakdown | "feature breakdown", "break down the PRD", "split into features" |
-| bv-taskify | "taskify", "create tasks", "break into tasks", "implementation tasks" |
+| beadify | "beadify", "taskify", "create tasks", "break into tasks", "implementation tasks" |
 | test-plan | "test plan", "test strategy", "test specs", "add tests" |
 
 ## Output Artifacts
@@ -76,7 +76,7 @@ Each skill can be invoked by name or trigger phrase:
 | tech-plan | `docs/technology.org` or `docs/technology.md` |
 | contracts | `docs/contracts.org` or `docs/contracts.md` + `docs/contracts/` |
 | prd-feature-breakdown | `docs/features/index.org` + `docs/features/*.org` |
-| bv-taskify | `.beads/` (via `bd` CLI) |
+| beadify | `.beads/` (via `bd` CLI) |
 | test-plan | `.beads/` (via `bd` CLI) + `docs/testing/` |
 
 ## Philosophy

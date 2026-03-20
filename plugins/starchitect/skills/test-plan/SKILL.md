@@ -143,7 +143,7 @@ Query `bd` for tasks associated with this feature:
 bd list --labels "ft:FTY" --type task --json
 ```
 
-These are the implementation tasks from bv-taskify. Extract: task IDs, titles, COMP labels, FR labels, acceptance criteria, design pointers.
+These are the implementation tasks from beadify. Extract: task IDs, titles, COMP labels, FR labels, acceptance criteria, design pointers.
 
 ### Step 4: Identify applicable test types
 
@@ -290,7 +290,7 @@ Present per-feature:
 3. Coverage matrix
 4. Feature-doc candidates
 
-Offer commit checkpoint (following the bv-taskify pattern):
+Offer commit checkpoint (following the beadify pattern):
 
 "Confirm test specs for **FTY — [feature name]**? (**N unit test scenarios** across **M impl tasks**, **K new test tasks**, **L feature-doc scenarios**. **P features** remaining in EPX.)"
 
@@ -409,7 +409,7 @@ Format the appended section:
 
 ### Step 2: Create test tasks
 
-For each integration/e2e/UX test task, follow a two-step create+update pattern (same as bv-taskify — `bd create` doesn't support `--acceptance-criteria` or `--design` flags):
+For each integration/e2e/UX test task, follow a two-step create+update pattern (same as beadify — `bd create` doesn't support `--acceptance-criteria` or `--design` flags):
 
 ```bash
 # Step 1: Create the issue
@@ -436,7 +436,7 @@ bd dep add [test-task-id] [impl-task-id] \
   --metadata '{"strength": "hard", "reason": "test requires implementation complete"}'
 ```
 
-For cross-feature test dependencies (e.g., an e2e test that spans features), follow the same fallback pattern as bv-taskify: if the other feature's tasks exist, depend on the specific task; otherwise fall back to the feature-level issue.
+For cross-feature test dependencies (e.g., an e2e test that spans features), follow the same fallback pattern as beadify: if the other feature's tasks exist, depend on the specific task; otherwise fall back to the feature-level issue.
 
 ```bash
 bd dep add [test-task-id] [other-feature-task-or-issue-id] \

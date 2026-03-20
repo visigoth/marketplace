@@ -1,8 +1,8 @@
-# bv-taskify Design
+# beadify Design
 
 **Date:** 2026-03-14
 **Plugin:** starchitect
-**Skill:** `starchitect:bv-taskify`
+**Skill:** `starchitect:beadify`
 
 ## Purpose
 
@@ -11,7 +11,7 @@ Bridge the gap between product architecture (PRDs, floorplans, feature breakdown
 ## Position in the starchitect pipeline
 
 ```
-prd-create → floorplan → prd-feature-breakdown → contracts → bv-taskify → agent implementation
+prd-create → floorplan → prd-feature-breakdown → contracts → beadify → agent implementation
 ```
 
 ## Design decisions

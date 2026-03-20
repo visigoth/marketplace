@@ -1,15 +1,15 @@
 ---
-name: starchitect:bv-taskify
+name: starchitect:beadify
 description: >
   Break features into implementation task hierarchies in bd (beads). Reads the feature index,
   then lazily loads feature PRDs, floorplan, contracts, and technology choices as needed.
   Produces component-scoped tasks with dependencies that expose parallelizable work for agents.
-  Triggers: "taskify", "create tasks", "break into tasks", "implementation tasks",
+  Triggers: "beadify", "taskify", "create tasks", "break into tasks", "implementation tasks",
   "task hierarchy", "decompose into tasks".
 user-invocable: true
 ---
 
-# bv-taskify: Features to Implementation Tasks
+# beadify: Features to Implementation Tasks
 
 Decompose features into implementation task hierarchies in `bd` (beads). Each task is scoped to a single architectural component (COMP) so that agents can work in parallel without file conflicts. Contracts define the interfaces agents code against.
 

@@ -11,14 +11,14 @@ A workflow for transforming product ideas into implementation-ready task hierarc
                                                                     │
        ┌────────────────────────────────────────────────────────────┘
        ▼
-┌───────────┐     ┌─────────┐     ┌───────────┐
-│ contracts │────▶│ beadify │────▶│ test-plan │
-└───────────┘     └─────────┘     └───────────┘
-                                        │
-                                        ▼
-                                  ┌───────────┐
-                                  │ tech-plan │  (revisit)
-                                  └───────────┘
+┌───────────┐     ┌───────────┐     ┌──────────┐     ┌───────────┐
+│ contracts │────▶│    tdd    │────▶│ beadify  │────▶│ test-plan │
+└───────────┘     └───────────┘     └──────────┘     └───────────┘
+                                                           │
+                                                           ▼
+                                                     ┌───────────┐
+                                                     │ tech-plan │  (revisit)
+                                                     └───────────┘
 ```
 
 ### 1. prd-create
@@ -41,15 +41,19 @@ Break the PRD into epics and features. Identifies epic boundaries from capabilit
 
 Define the interfaces between components: entity schemas, API operations, wire protocols, and async events. Uses the floorplan's edges and data flows as the starting point — each edge becomes an API or event contract. The feature index helps prioritize which API boundaries need the cleanest interfaces.
 
-### 6. beadify
+### 6. tdd
 
-Convert features into implementation task hierarchies in beads (`bd`). Each task is scoped to a single component so agents can work in parallel without file conflicts. Tasks reference contracts, floorplan elements, and FRs for full traceability.
+Create Technical Design Documents that describe how the system fulfills its functional requirements. TDDs define the internal technical approach — algorithms, data structures, behavioral semantics, storage strategies, concurrency models, and error recovery. Introduces Technical Requirements (TRs) in a global namespace that downstream skills (beadify, test-plan) consume alongside FRs and contract elements. Supports recursive decomposition for complex subsystems.
 
-### 7. test-plan
+### 7. beadify
 
-Produce test specifications from PRDs, contracts, and task hierarchies. Adds unit test specs to implementation tasks and creates separate tasks for integration, e2e, and UX tests.
+Convert features into implementation task hierarchies in beads (`bd`). Each task is scoped to a single component so agents can work in parallel without file conflicts. Tasks reference contracts, floorplan elements, TRs, and FRs for full traceability.
 
-### 8. tech-plan (revisit)
+### 8. test-plan
+
+Produce test specifications from PRDs, contracts, and task hierarchies. Adds unit test specs to implementation tasks and creates separate tasks for integration, e2e, and UX tests. TRs from TDDs become additional test targets.
+
+### 9. tech-plan (revisit)
 
 Test planning often surfaces new technology decisions — test frameworks, mocking tools, e2e infrastructure, CI integration. Run tech-plan again after test-plan to capture these choices.
 
@@ -63,6 +67,7 @@ Each skill can be invoked by name or trigger phrase:
 | floorplan | "floorplan", "architecture diagram", "how do the components fit together" |
 | tech-plan | "tech plan", "technology choices", "what tech should we use" |
 | contracts | "contracts", "define the APIs", "entity model", "data schema" |
+| tdd | "tdd", "technical design", "how should we build this", "technical requirements" |
 | prd-feature-breakdown | "feature breakdown", "break down the PRD", "split into features" |
 | beadify | "beadify", "taskify", "create tasks", "break into tasks", "implementation tasks" |
 | test-plan | "test plan", "test strategy", "test specs", "add tests" |
@@ -75,6 +80,7 @@ Each skill can be invoked by name or trigger phrase:
 | floorplan | `docs/floorplan.org` or `docs/floorplan.md` |
 | tech-plan | `docs/technology.org` or `docs/technology.md` |
 | contracts | `docs/contracts.org` or `docs/contracts.md` + `docs/contracts/` |
+| tdd | `docs/tdd.org` or `docs/tdd.md` + `docs/tdd/` |
 | prd-feature-breakdown | `docs/features/index.org` + `docs/features/*.org` |
 | beadify | `.beads/` (via `bd` CLI) |
 | test-plan | `.beads/` (via `bd` CLI) + `docs/testing/` |

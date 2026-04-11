@@ -56,6 +56,35 @@ If not found:
 
 **Do NOT load feature PRDs, contracts, floorplan, or technology choices at this point.** The feature index contains the epic/feature hierarchy, dependency graph, and implementation phases — that is sufficient for scoping.
 
+### Propose and confirm the project slug
+
+Every issue this skill creates (epics, features, and tasks) must carry a `proj:<slug>` label so the entire project can be filtered as a unit in `bd`.
+
+**Step 1 — Generate a candidate slug.** Derive it from one of the following, in order of preference:
+
+1. The project name or title at the top of the feature index
+2. The product name from the PRD if easily discoverable
+3. The repository directory name (last path component of the working directory)
+
+Slugify the chosen source: lowercase, hyphens for spaces, no special characters. Shorten long names to keep the slug concise (e.g., "Acme Internal Customer Portal" → `acme-portal`).
+
+**Step 2 — Check for existing project slugs in `bd`:**
+
+```bash
+bd list --json | jq -r '.[].labels[]? | select(startswith("proj:"))' | sort -u
+```
+
+**Step 3 — Present options to the user.** Offer both your generated slug and any existing `proj:*` slugs found in `bd`, and let the user pick one or supply their own:
+
+- If existing slugs are found, present them as options alongside the generated candidate (e.g., "Existing projects in this workspace: `proj:foo`, `proj:bar`. Generated candidate: `proj:acme-portal`. Which should I use, or would you like to supply a different slug?").
+- If no existing slugs are found, present just the generated candidate and ask the user to confirm or override.
+
+Consider whether any of the existing slugs actually apply to the current work — if one clearly matches the epic/feature being taskified, recommend it. Otherwise, let the user choose.
+
+<HARD-GATE>
+Do NOT proceed until the user has explicitly confirmed the project slug. Remember the confirmed slug for the entire session — it must be applied to every `bd create` call in Phase 3.
+</HARD-GATE>
+
 ### Determine what's already taskified
 
 Query `bd` for existing issues:
@@ -254,7 +283,7 @@ If no epic-type issue exists in `bd` for this EP:
 
 ```bash
 bd create --type epic --title "EPX: [epic name]" \
-  --labels "ep:EPX,slug:[epic-slug]" \
+  --labels "proj:[project-slug],ep:EPX,slug:[epic-slug]" \
   --priority [P0-P4] \
   --description "[epic description from feature index]" \
   --silent
@@ -273,7 +302,7 @@ For each feature being committed that doesn't already have a feature-type issue:
 ```bash
 bd create --type feature --title "FTY: [feature name]" \
   --parent [epic-issue-id] \
-  --labels "ep:EPX,ft:FTY,slug:[feature-slug]" \
+  --labels "proj:[project-slug],ep:EPX,ft:FTY,slug:[feature-slug]" \
   --priority [P0-P4] \
   --description "[feature description from feature index]" \
   --silent
@@ -293,7 +322,7 @@ For each task, create the issue and then set fields that `bd create` doesn't sup
 # Step 1: Create the issue (captures the issue ID via --silent)
 bd create --type task --title "[task title]" \
   --parent [feature-issue-id] \
-  --labels "ep:EPX,ft:FTY,fr:FRZ,comp:COMPN" \
+  --labels "proj:[project-slug],ep:EPX,ft:FTY,fr:FRZ,comp:COMPN" \
   --external-ref "FRZ" \
   --priority [P0-P4] \
   --description "[task description]" \

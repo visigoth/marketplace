@@ -19,6 +19,12 @@ Your output is `bd` issues — epics, features, and tasks with structured fields
 Do NOT skip to creating tasks. Every task hierarchy must be presented to the user for review and confirmation before writing to `bd`. Do NOT load all documents upfront — load lazily as each feature is visited.
 </HARD-GATE>
 
+## Autopilot Mode
+
+When invoked with the word **"autopilot"** (e.g., "beadify on autopilot", "beadify autopilot"), all confirmation gates below become **soft**: the skill still presents its output at each checkpoint but proceeds immediately without waiting for user confirmation. The user can interrupt at any point to adjust.
+
+Autopilot does NOT skip content — it skips waiting. You still show your work at every gate.
+
 ## Checklist
 
 You MUST create a task for each of these items and complete them in order:
@@ -83,6 +89,8 @@ Consider whether any of the existing slugs actually apply to the current work �
 
 <HARD-GATE>
 Do NOT proceed until the user has explicitly confirmed the project slug. Remember the confirmed slug for the entire session — it must be applied to every `bd create` call in Phase 3.
+
+**Autopilot:** Present the slug options, then proceed immediately with the recommended slug.
 </HARD-GATE>
 
 ### Determine what's already taskified
@@ -117,6 +125,8 @@ Let the user confirm the recommended scope or override (e.g., select a different
 
 <HARD-GATE>
 Do NOT proceed to Phase 1 until the user has confirmed the scope.
+
+**Autopilot:** Present the scope recommendation, then proceed immediately.
 </HARD-GATE>
 
 ---
@@ -267,9 +277,9 @@ After reviewing all features in the epic, if there are uncommitted tasks, prompt
 
 "**N tasks** across **M features** are ready to commit for **EPX — [epic name]**. Commit all now?"
 
-<HARD-GATE>
-Do NOT write any issues to `bd` until the user has explicitly confirmed the commit.
-</HARD-GATE>
+Prompt the user: "Would you like to review the tasks before I write them to bd, or should I go ahead and write?"
+
+If the user wants to review, present them and wait for approval. If they choose to skip, write directly. **Autopilot:** skip review and write directly.
 
 ---
 

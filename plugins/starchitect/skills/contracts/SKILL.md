@@ -391,9 +391,9 @@ Write the assessment as the final section of the contracts document. List each r
 
 If the user has already reviewed and confirmed entities (Phase 1), APIs (Phase 2), and events (Phase 3) individually, present only the traceability matrices and quality assessment as new material — do not re-present sections the user has already approved.
 
-<HARD-GATE>
-Do NOT write to disk until the user has reviewed and approved the traceability matrices and quality assessment.
-</HARD-GATE>
+Prompt the user: "Would you like to review the traceability matrices and quality assessment, or should I skip ahead and write to disk?"
+
+If the user wants to review, present them and wait for approval. If they choose to skip, write directly.
 
 ### Write to disk — split structure
 

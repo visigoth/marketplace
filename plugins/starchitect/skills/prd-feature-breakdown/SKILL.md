@@ -17,6 +17,12 @@ Break a high-level PRD into epics, then decompose each epic into independently i
 Do NOT skip to writing output. Every epic list, feature list, coalesced list, dependency analysis, and feature PRD must be presented to the user for review and confirmation before proceeding or writing to disk.
 </HARD-GATE>
 
+## Autopilot Mode
+
+When invoked with the word **"autopilot"** (e.g., "feature breakdown on autopilot", "break into features, autopilot"), all confirmation gates below become **soft**: the skill still presents its output at each checkpoint but proceeds immediately without waiting for user confirmation. The user can interrupt at any point to adjust.
+
+Autopilot does NOT skip content — it skips waiting. You still show your work at every gate.
+
 ## Checklist
 
 You MUST create a task for each of these items and complete them in order:
@@ -126,6 +132,8 @@ For each proposed epic, show:
 
 <HARD-GATE>
 Do NOT proceed to Phase 2 until the user has confirmed the epic list.
+
+**Autopilot:** Present the epic list, then proceed immediately.
 </HARD-GATE>
 
 ---
@@ -174,6 +182,8 @@ For each feature, show:
 
 <HARD-GATE>
 Do NOT proceed to Phase 3 until the user has confirmed all features across all epics.
+
+**Autopilot:** Present the feature list, then proceed immediately.
 </HARD-GATE>
 
 ---
@@ -215,6 +225,8 @@ Show the updated feature list with:
 
 <HARD-GATE>
 Do NOT proceed to Phase 4 until the user has confirmed the coalesced feature list.
+
+**Autopilot:** Present the coalesced list, then proceed immediately.
 </HARD-GATE>
 
 ---
@@ -252,6 +264,8 @@ Show:
 
 <HARD-GATE>
 Do NOT proceed to Phase 5 until the user has confirmed the ordering and dependencies.
+
+**Autopilot:** Present the ordering, then proceed immediately.
 </HARD-GATE>
 
 ---
@@ -264,9 +278,9 @@ Create `docs/features/index.org` (or `.md` based on Phase 0).
 
 Present the index to the user for review before writing to disk.
 
-<HARD-GATE>
-Do NOT write the index to disk until the user has reviewed and approved it.
-</HARD-GATE>
+Prompt the user: "Would you like to review the feature index before I write it, or should I go ahead and write to disk?"
+
+If the user wants to review, present it and wait for approval. If they choose to skip, write directly. **Autopilot:** skip review and write directly.
 
 **Org-mode template (`docs/features/index.org`):**
 
@@ -484,9 +498,9 @@ State which parent PRD items this feature covers:
 
 Show the complete feature PRD to the user. Ask for confirmation before writing to disk.
 
-<HARD-GATE>
-Do NOT write the feature PRD to disk until the user has reviewed and approved it.
-</HARD-GATE>
+Prompt the user: "Would you like to review this feature PRD before I write it, or should I go ahead and write to disk?"
+
+If the user wants to review, present it and wait for approval. If they choose to skip, write directly. **Autopilot:** skip review and write directly.
 
 #### Write to disk
 

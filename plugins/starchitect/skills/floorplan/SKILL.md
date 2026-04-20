@@ -320,9 +320,9 @@ Write the assessment as the final section of the floorplan document. List each r
 
 Show the user the complete floorplan document — all sections, all diagrams, the traceability matrix, and the quality assessment.
 
-<HARD-GATE>
-Do NOT write to disk until the user has reviewed and approved the floorplan.
-</HARD-GATE>
+Prompt the user: "Would you like to review the complete floorplan before I write it, or should I go ahead and write to disk?"
+
+If the user wants to review, present it and wait for approval. If they choose to skip, write directly.
 
 ### Write to disk
 

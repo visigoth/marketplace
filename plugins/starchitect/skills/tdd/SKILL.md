@@ -328,11 +328,11 @@ Flag gaps: any FR or contract element in scope that has no TR coverage. These ar
 
 ### Present complete TDD for approval
 
-<HARD-GATE>
 If the user has already reviewed the design (Phase 2) and TRs (Phase 3) individually, present only the traceability matrix as new material — do not re-present approved sections.
 
-Do NOT write to disk until the user has approved.
-</HARD-GATE>
+Prompt the user: "Would you like to review the traceability matrix before I write to disk, or should I skip ahead and write?"
+
+If the user wants to review, present it and wait for approval. If they choose to skip, write directly.
 
 ### Write to disk — split structure
 

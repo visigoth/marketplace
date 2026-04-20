@@ -17,6 +17,12 @@ Produce test specifications from PRDs, contracts, and task hierarchies in `bd` (
 Do NOT skip to writing — every test specification must be presented to the user for review and confirmation before writing to `bd` or documents. Do NOT load all documents upfront — load lazily as each feature is visited.
 </HARD-GATE>
 
+## Autopilot Mode
+
+When invoked with the word **"autopilot"** (e.g., "test plan on autopilot", "test plan autopilot"), all confirmation gates below become **soft**: the skill still presents its output at each checkpoint but proceeds immediately without waiting for user confirmation. The user can interrupt at any point to adjust.
+
+Autopilot does NOT skip content — it skips waiting. You still show your work at every gate.
+
 ## Checklist
 
 You MUST create a task for each of these items and complete them in order:
@@ -105,6 +111,8 @@ Present to the user:
 
 <HARD-GATE>
 Do NOT proceed to Phase 1 until the user has confirmed the scope.
+
+**Autopilot:** Present the scope recommendation, then proceed immediately.
 </HARD-GATE>
 
 ---
@@ -193,6 +201,8 @@ Let the user confirm or adjust the activated test types. The user may:
 
 <HARD-GATE>
 Do NOT proceed to Phase 2 until the user has confirmed the activated test types for this feature.
+
+**Autopilot:** Present the activated test types, then proceed immediately.
 </HARD-GATE>
 
 ---
@@ -309,6 +319,8 @@ After reviewing all features in the epic, if there are unconfirmed test specs, p
 
 <HARD-GATE>
 Do NOT proceed to Phase 3 until the user has confirmed test specs for all in-scope features.
+
+**Autopilot:** Present the test specs, then proceed immediately.
 </HARD-GATE>
 
 ---
@@ -372,9 +384,9 @@ Each documented scenario includes:
 
 Present the documents for review. If the user has already confirmed individual features in Phase 2, only present the index (strategy sections + coverage table) as new material.
 
-<HARD-GATE>
-Do NOT write to disk until the user has reviewed and approved.
-</HARD-GATE>
+Prompt the user: "Would you like to review the test plan documents before I write them, or should I go ahead and write to disk?"
+
+If the user wants to review, present them and wait for approval. If they choose to skip, write directly. **Autopilot:** skip review and write directly.
 
 ---
 
@@ -450,9 +462,9 @@ Present before writing:
 
 "Write **N unit test spec updates** and **M new test tasks** with **K dependencies** for **FTY — [feature name]** to bd now?"
 
-<HARD-GATE>
-Do NOT write any issues until user confirms.
-</HARD-GATE>
+Prompt the user: "Would you like to review the bd issues before I write them, or should I go ahead and write?"
+
+If the user wants to review, present them and wait for approval. If they choose to skip, write directly. **Autopilot:** skip review and write directly.
 
 ### Step 5: Confirm success
 

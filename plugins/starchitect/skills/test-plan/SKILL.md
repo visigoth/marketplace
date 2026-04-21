@@ -139,9 +139,21 @@ Load **only** the sections of these documents that the feature PRD references:
 |----------|-----------|-----------------|
 | **Contracts index** (`docs/contracts.{org,md}`) | Feature references ENT, API, or EVT identifiers | Load the compact index first for identifier lookup; then load specific detail files from `docs/contracts/` (e.g., `entities.{org,md}` for ENT schemas, `<api-name>.{org,md}` for API operations) as needed |
 | **Floorplan** (`docs/floorplan.{org,md}`) | Feature references COMP, BD, SL, or DF identifiers | Component boundaries, relevant block diagram edges, swim-lane interactions |
-| **Technology choices** (`docs/technology.{org,md}`) | Feature's COMPs have technology decisions | Tech stack for the relevant components |
+| **Technology choices** (`docs/technology.{org,md}`) | Feature's COMPs have technology decisions | Tech stack for the relevant components, **plus** production container image requirements and devcontainer configuration sections |
 
 Do NOT read these documents in full. Read them and extract only the sections relevant to the current feature's identifiers.
+
+#### Review container and devcontainer configuration for testing adequacy
+
+When loading technology choices, **always** check the "Production Container Image Requirements" and "Development Container (Devcontainer) Configuration" sections (if they exist). Assess whether:
+
+1. **Devcontainer services cover test dependencies**: every database, queue, cache, or external service that integration/e2e tests will need must appear in the devcontainer's "Services for Testing" table. If a feature introduces a new service dependency (e.g., a feature uses Redis but Redis is absent from the devcontainer config), flag this as a gap.
+
+2. **Test tooling is available**: the test runners, assertion libraries, and coverage tools needed for the feature's test types are either installable via the language toolchain listed in the devcontainer or explicitly listed as build tools.
+
+3. **Production image constraints are testable**: if the production image has specific requirements (e.g., distroless, no shell, non-root), note any implications for e2e or integration tests that might need to run against the production image (e.g., smoke tests in CI).
+
+If gaps are found, include them in the test type presentation (Phase 1, Step 5) as action items: "The devcontainer configuration in `docs/technology.{org,md}` should be updated to include [service/tool] to support [test type] for this feature." These are recommendations — the test-plan skill does not modify the technology choices document.
 
 ### Step 3: Load implementation tasks
 
@@ -173,6 +185,7 @@ Determine which test types apply to this feature. There are two categories: core
 | Contract tests | Multiple COMPs implement the same API boundary | Contracts (API boundary definitions) |
 | Performance tests | PRD has throughput/latency AC constraints | PRD non-functional requirements |
 | Security tests | ENT sensitivity flags or auth requirements exist | Contracts (ENT sensitivity, API auth fields) |
+| Environment tests | Production image requirements or devcontainer config exists in technology choices | Technology choices (container image requirements, devcontainer configuration) |
 
 Scan the feature PRD, contracts, and task acceptance criteria for the activation signals listed above. A conditional test type is activated only when its signal is present — do not assume it applies without evidence.
 
@@ -262,6 +275,13 @@ For each test type, the following drives scenario identification:
 **Performance tests** (if activated): verify throughput/latency constraints from PRD AC items. Produce one test task per constraint, referencing the specific PRD non-functional requirement.
 
 **Security tests** (if activated): verify auth, input validation, sensitive data handling for ENTs with sensitivity flags. Produce one test task per security concern, referencing the ENT sensitivity flags and API auth fields from contracts.
+
+**Environment tests** (if activated): verify that the production container image and devcontainer configuration satisfy the requirements from the technology choices document. Scenarios include:
+- **Production image smoke tests**: the built image starts, passes health checks, and serves traffic with only the declared runtime dependencies (validates the "Production Container Image Requirements" section)
+- **Devcontainer completeness tests**: a fresh devcontainer build succeeds, all declared services are reachable, and the full test suite passes (validates the "Devcontainer Configuration" section)
+- **Parity checks**: language runtime versions, system dependencies, and service versions match between the devcontainer and production image where applicable
+
+Produce one test task for production image validation and one for devcontainer validation. These are typically CI-level tasks rather than feature-scoped, so attach them to the epic level if no single feature owns them.
 
 ### Step 3: Build coverage matrix
 
@@ -503,7 +523,8 @@ Coverage expectations per test type:
 - *Integration tests*: every API operation has at least one happy-path and one error-path integration test
 - *E2E tests*: every use case (UC/UJ) has at least one end-to-end test covering the full flow
 - *UX tests*: every user-facing feature has accessibility + interaction flow tests
-- (Conditional types as applicable: contract, performance, security)
+- (Conditional types as applicable: contract, performance, security, environment)
+- *Environment tests* (when applicable): production image starts and passes health checks; devcontainer builds cleanly and runs the full test suite
 
 * Risk-Based Testing Priorities
 
@@ -544,7 +565,8 @@ Coverage expectations per test type:
 - **Integration tests**: every API operation has at least one happy-path and one error-path integration test
 - **E2E tests**: every use case (UC/UJ) has at least one end-to-end test covering the full flow
 - **UX tests**: every user-facing feature has accessibility + interaction flow tests
-- (Conditional types as applicable: contract, performance, security)
+- (Conditional types as applicable: contract, performance, security, environment)
+- **Environment tests** (when applicable): production image starts and passes health checks; devcontainer builds cleanly and runs the full test suite
 
 ## Risk-Based Testing Priorities
 

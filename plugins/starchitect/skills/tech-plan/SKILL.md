@@ -118,6 +118,8 @@ Go through this list and determine which categories are relevant based on the PR
 - Observability / monitoring
 - Authentication / authorization
 - Infrastructure as code
+- Production container image requirements
+- Development container (devcontainer) configuration
 
 ### Extend with PRD-specific categories
 
@@ -177,6 +179,35 @@ When the PRD has multiple components that need different tech in the same catego
 
 When there are multiple distinct components/workloads, group the decisions so related choices are made together (e.g., all backend decisions, then all frontend decisions).
 
+### Production container image requirements
+
+This category captures what the production container image must provide — not a specific base image or Dockerfile, but the runtime requirements that follow from all other technology choices made so far.
+
+Walk the decided technology choices and derive:
+
+- **Runtime(s)**: which language runtimes and versions must be present (e.g., Node.js 22, Python 3.12, Go 1.22 binary — or just a static binary with no runtime)
+- **System dependencies**: native libraries, OS packages, or tools required at runtime (e.g., `libpq` for PostgreSQL drivers, `ffmpeg` for media processing, `ca-certificates` for TLS)
+- **Security posture**: whether the image should be distroless/minimal, whether it needs a shell, whether it runs as non-root
+- **Architecture targets**: which CPU architectures the image must support (e.g., amd64, arm64)
+- **Health/observability surface**: if the chosen observability stack requires agents, sidecars, or specific binaries in the image
+
+Present these as requirements, not implementation. The user decides the base image and Dockerfile strategy later — this section ensures nothing is forgotten.
+
+### Development container (devcontainer) configuration
+
+This category captures what the development environment must provide for both development and testing. Walk the decided technology choices and derive:
+
+- **Language toolchains**: compilers, interpreters, package managers, and their versions (e.g., `rustup` + stable toolchain, `node` + `npm`, `go` + `gopls`)
+- **Build tools**: anything needed to build the project (e.g., `make`, `cmake`, `protoc` for protobuf, `sqlc` for SQL codegen)
+- **Database/service dependencies for testing**: if integration or e2e tests need a real database, message queue, or cache, the devcontainer must provide them (e.g., PostgreSQL, Redis, Kafka) — typically via Docker Compose services or devcontainer features
+- **Test runners and frameworks**: the testing tools chosen for each language/component (e.g., `pytest`, `jest`, `go test` — these should already be installable via the language toolchain, but note any that require separate installation)
+- **Linting and formatting**: tools required by CI that developers must also run locally (e.g., `eslint`, `prettier`, `golangci-lint`, `clippy`)
+- **CLI tools**: any project-specific CLIs needed for development (e.g., `gh` for GitHub workflows, `bd` for beads, cloud provider CLIs)
+- **Editor integration**: LSP servers, debugger adapters, or extensions that should be recommended (not mandated) in the devcontainer configuration
+- **Port forwarding**: which ports need to be forwarded for local development (derived from the floorplan's component topology)
+
+**Testing emphasis**: The devcontainer must support running the full test suite locally. If the technology choices include databases, queues, or external services that tests depend on, the devcontainer configuration must include them. A developer should be able to clone the repo, open the devcontainer, and run all tests without additional setup.
+
 ---
 
 ## Phase 4: Document & Commit
@@ -219,6 +250,52 @@ Technologies detected in the repo that are carried forward.
 | Category | Choice | Rationale | Alternatives Considered |
 |----------|--------|-----------|------------------------|
 | Language | Swift | [why] | Flutter, React Native |
+
+## Production Container Image Requirements
+
+Runtime and system-level requirements the production image must satisfy, derived from technology choices above.
+
+| Requirement | Category | Rationale |
+|-------------|----------|-----------|
+| Node.js 22 | Runtime | Chosen for API server |
+| libpq | System dependency | Required by PostgreSQL driver |
+| Non-root user | Security | Production hardening |
+| amd64 + arm64 | Architecture | Deploy targets |
+
+Additional notes on security posture, health checks, and observability agents.
+
+## Development Container (Devcontainer) Configuration
+
+Tools and services the development environment must provide for building, testing, and running locally.
+
+### Toolchains and build tools
+
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| Node.js 22 + npm | Language toolchain | Matches production runtime |
+| protoc | Build tool | Protobuf codegen |
+| eslint, prettier | Linting/formatting | Required by CI |
+
+### Services for testing
+
+| Service | Purpose | Notes |
+|---------|---------|-------|
+| PostgreSQL 16 | Integration/e2e tests | Via Docker Compose or devcontainer feature |
+| Redis 7 | Integration tests | Cache layer tests |
+
+### Port forwarding
+
+| Port | Service |
+|------|---------|
+| 3000 | API server |
+| 5432 | PostgreSQL |
+
+### Recommended editor extensions
+
+| Extension | Purpose |
+|-----------|---------|
+| ESLint | Linting |
+| Prettier | Formatting |
 
 ## Deferred Decisions
 
@@ -263,6 +340,52 @@ Technologies detected in the repo that are carried forward.
 | Category | Choice | Rationale | Alternatives Considered |
 |----------+--------+-----------+------------------------|
 | Language | Swift  | [why]     | Flutter, React Native   |
+
+* Production Container Image Requirements
+
+Runtime and system-level requirements the production image must satisfy, derived from technology choices above.
+
+| Requirement | Category          | Rationale                     |
+|-------------+-------------------+-------------------------------|
+| Node.js 22  | Runtime           | Chosen for API server         |
+| libpq       | System dependency | Required by PostgreSQL driver |
+| Non-root    | Security          | Production hardening          |
+| amd64+arm64 | Architecture      | Deploy targets                |
+
+Additional notes on security posture, health checks, and observability agents.
+
+* Development Container (Devcontainer) Configuration
+
+Tools and services the development environment must provide for building, testing, and running locally.
+
+** Toolchains and Build Tools
+
+| Tool             | Purpose            | Notes                       |
+|------------------+--------------------+-----------------------------|
+| Node.js 22 + npm | Language toolchain | Matches production runtime |
+| protoc           | Build tool         | Protobuf codegen            |
+| eslint, prettier | Linting/formatting | Required by CI              |
+
+** Services for Testing
+
+| Service        | Purpose              | Notes                                      |
+|----------------+----------------------+--------------------------------------------|
+| PostgreSQL 16  | Integration/e2e tests | Via Docker Compose or devcontainer feature |
+| Redis 7        | Integration tests    | Cache layer tests                          |
+
+** Port Forwarding
+
+| Port | Service    |
+|------+------------|
+| 3000 | API server |
+| 5432 | PostgreSQL |
+
+** Recommended Editor Extensions
+
+| Extension | Purpose    |
+|-----------+------------|
+| ESLint    | Linting    |
+| Prettier  | Formatting |
 
 * Deferred Decisions
 

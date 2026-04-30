@@ -1,5 +1,11 @@
 # Changelog
 
+## starchitect 0.15.0
+
+### Features
+
+- Add artifacts skill — identifies the build artifacts a project must produce (binaries, app packages, container images, service definitions, installers, signing/notarization outputs) per target platform, records source-of-truth locations in the repo, validates cross-platform parity. Scopes project-wide, per-component, or per-feature. Introduces ART identifiers.
+
 ## starchitect 0.8.0
 
 ### Refactors

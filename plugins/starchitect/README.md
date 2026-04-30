@@ -15,10 +15,11 @@ A workflow for transforming product ideas into implementation-ready task hierarc
 │ contracts │────▶│    tdd    │────▶│ beadify  │────▶│ test-plan │
 └───────────┘     └───────────┘     └──────────┘     └───────────┘
                                                            │
-                                                           ▼
-                                                     ┌───────────┐
-                                                     │ tech-plan │  (revisit)
-                                                     └───────────┘
+                                       ┌───────────────────┤
+                                       ▼                   ▼
+                                 ┌───────────┐     ┌───────────┐
+                                 │ artifacts │     │ tech-plan │  (revisit)
+                                 └───────────┘     └───────────┘
 ```
 
 ### 1. prd-create
@@ -53,9 +54,13 @@ Convert features into implementation task hierarchies in beads (`bd`). Each task
 
 Produce test specifications from PRDs, contracts, and task hierarchies. Adds unit test specs to implementation tasks and creates separate tasks for integration, e2e, and UX tests. TRs from TDDs become additional test targets.
 
-### 9. tech-plan (revisit)
+### 9. artifacts
 
-Test planning often surfaces new technology decisions — test frameworks, mocking tools, e2e infrastructure, CI integration. Run tech-plan again after test-plan to capture these choices.
+Identify the build artifacts the project must produce to service its runtime environment — application binaries, packages (`.app`, `.exe`, `.ipa`, `.apk`, `.deb`, `.rpm`), container images, service definitions (LaunchAgents, systemd units, Kubernetes manifests), config templates, locale bundles, signing/notarization outputs, and update manifests. Platform-sensitive: validates per-target-platform coverage and cross-platform parity. Records source-of-truth locations in the repo for each artifact's inputs. Can be scoped project-wide, to a single component, or to a single feature.
+
+### 10. tech-plan (revisit)
+
+Test planning and artifact specification often surface new technology decisions — test frameworks, packaging tooling (electron-builder, Tauri, goreleaser), signing infrastructure, CI integration. Run tech-plan again after test-plan/artifacts to capture these choices.
 
 ## Usage
 
@@ -71,6 +76,7 @@ Each skill can be invoked by name or trigger phrase:
 | prd-feature-breakdown | "feature breakdown", "break down the PRD", "split into features" |
 | beadify | "beadify", "taskify", "create tasks", "break into tasks", "implementation tasks" |
 | test-plan | "test plan", "test strategy", "test specs", "add tests" |
+| artifacts | "artifacts", "build artifacts", "packaging plan", "what gets shipped", "deployable artifacts" |
 
 ## Output Artifacts
 
@@ -84,6 +90,7 @@ Each skill can be invoked by name or trigger phrase:
 | prd-feature-breakdown | `docs/features/index.org` + `docs/features/*.org` |
 | beadify | `.beads/` (via `bd` CLI) |
 | test-plan | `.beads/` (via `bd` CLI) + `docs/testing/` |
+| artifacts | `docs/artifacts.org` or `docs/artifacts.md` (+ `docs/artifacts/` when split) |
 
 ## Philosophy
 

@@ -2,7 +2,8 @@
 name: starchitect:test-plan
 description: >
   Produce test specifications from PRDs, contracts, and task hierarchies. Adds unit test specs
-  to existing implementation tasks and creates separate test tasks for integration, e2e, and UX tests.
+  to existing implementation tasks, enriches beadify's verification beads with case-level specs,
+  and creates test tasks only for coverage beadify did not already skeleton.
   Reads the feature index, then lazily loads feature PRDs, contracts, floorplan, and task issues as needed.
   Triggers: "test plan", "test strategy", "testing", "write tests for", "test specs",
   "test coverage", "add tests".
@@ -11,7 +12,23 @@ user-invocable: true
 
 # test-plan: Task Hierarchies to Test Specifications
 
-Produce test specifications from PRDs, contracts, and task hierarchies in `bd` (beads). For each feature, analyze functional requirements and contracts to determine what needs testing, then add unit test specs directly to existing implementation tasks and create separate test tasks for integration, e2e, and UX tests. The result is a complete test plan with traceability from every FR back to specific test specifications.
+Produce test specifications from PRDs, contracts, and task hierarchies in `bd` (beads). For each feature, analyze functional requirements and contracts to determine what needs testing, then add unit test specs directly to existing implementation tasks and specify the cases for integration, e2e, and UX tests. The result is a complete test plan with traceability from every FR back to specific test specifications.
+
+## Relationship to beadify
+
+beadify runs first and creates the **verification skeleton**: one bead per seam, journey, artifact, and non-functional requirement (`kind:verify-seam`, `kind:verify-journey`, `kind:verify-artifact`, `kind:verify-runtime`), plus the test-harness beads (`kind:harness`) those tests run in.
+
+This skill owns the **specification**: the concrete cases, inputs, and expected outputs.
+
+| | beadify | test-plan |
+|---|---------|-----------|
+| **Owns** | Which seams, journeys, and artifacts must be proven; the harness to prove them in | The cases: inputs, expected outputs, error paths, edge cases |
+| **Labels** | `kind:verify-*`, `kind:harness` | `test:unit`, `test:integration`, `test:e2e`, `test:ux` |
+| **Granularity** | One bead per seam / journey / artifact / TR | Case-level specs attached to beads |
+
+**Enrich, do not duplicate.** When a `kind:verify-*` bead already covers a seam or journey, append the case specification to that bead and add the `test:*` label to it. Creating a parallel test task for the same seam splits the work in two and leaves both halves half-done.
+
+beadify never emits a `test:*` label, so any bead carrying one was created or enriched by this skill.
 
 <HARD-GATE>
 Do NOT skip to writing — every test specification must be presented to the user for review and confirmation before writing to `bd` or documents. Do NOT load all documents upfront — load lazily as each feature is visited.
@@ -27,11 +44,11 @@ Autopilot does NOT skip content — it skips waiting. You still show your work a
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Discover & scope** — check for beads, load feature index, check for existing test plan, determine scope
+1. **Discover & scope** — check for beads, load feature index, inventory beadify's verification skeleton, check for existing test plan, determine scope
 2. **Analyze test needs** — per feature: lazy-load docs, identify test types (unit, integration, e2e, UX), present for confirmation
-3. **Produce test specifications** — per feature: unit test specs for impl tasks, test task specs for integration/e2e/UX, coverage matrix
+3. **Produce test specifications** — per feature: unit test specs for impl tasks, case specs for existing verify beads, new test task specs only where no verify bead exists, coverage matrix
 4. **Write documents** — create/update test plan index and per-feature detail files
-5. **Write to bd** — update impl tasks with unit test specs, create test tasks for integration/e2e/UX, add dependencies
+5. **Write to bd** — update impl tasks with unit test specs, enrich verify beads, create the remaining test tasks, add dependencies
 6. **Validate** — offer `bv --robot-plan` validation, suggest next steps
 
 ---
@@ -90,6 +107,25 @@ bd list --type task --json
 ```
 
 From the results, specifically look for tasks with `test:*` labels. A feature is considered **test-planned** if it has at least one task with a `test:` label (e.g., `test:unit`, `test:integration`, `test:e2e`, `test:ux`).
+
+### Inventory beadify's verification skeleton
+
+Before scoping, find out what beadify already built. For each candidate feature:
+
+```bash
+bd query --label ft:FTY --json \
+  | jq -r '.[] | {id, title, labels: [.labels[]? | select(startswith("kind:"))]}'
+```
+
+Classify the feature by what it has:
+
+| Beads present | What this skill does |
+|---------------|---------------------|
+| `kind:verify-*` and `kind:harness` beads | **Enrich.** Add case specs to the verify beads; the harness already exists |
+| `kind:impl` beads but no `kind:verify-*` | Feature was beadified by an older pass. Note the gap, recommend re-running beadify as a completion pass, and specify integration/e2e coverage as new tasks in the meantime |
+| No beads at all | Feature was never beadified. Tell the user to run beadify first — there is nothing to attach specs to |
+
+Report the classification in the scope recommendation. A feature in the middle row is the case most likely to end up implemented but unwired; say so plainly.
 
 ### Determine scope
 
@@ -155,7 +191,9 @@ When loading technology choices, **always** check the "Production Container Imag
 
 If gaps are found, include them in the test type presentation (Phase 1, Step 5) as action items: "The devcontainer configuration in `docs/technology.{org,md}` should be updated to include [service/tool] to support [test type] for this feature." These are recommendations — the test-plan skill does not modify the technology choices document.
 
-### Step 3: Load implementation tasks
+The *provisioning work itself* belongs to beadify's `kind:harness` beads. If the feature has a harness bead, record the gap as a comment on it (`bd comment <harness-id>`) so the agent that builds the harness sees it. If the feature has no harness bead, recommend a beadify completion pass — specifying tests that have nowhere to run is how a test plan ends up unexecuted.
+
+### Step 3: Load the feature's beads
 
 Query `bd` for tasks associated with this feature:
 
@@ -163,7 +201,14 @@ Query `bd` for tasks associated with this feature:
 bd list --labels "ft:FTY" --type task --json
 ```
 
-These are the implementation tasks from beadify. Extract: task IDs, titles, COMP labels, FR labels, acceptance criteria, design pointers.
+Sort them by `kind:*` label:
+
+- **`kind:impl`, `kind:wiring`, `kind:scaffold`, `kind:contract-types`** — implementation tasks. Extract IDs, titles, COMP labels, FR labels, acceptance criteria, design pointers. These receive unit test specs.
+- **`kind:verify-seam`, `kind:verify-journey`, `kind:verify-artifact`, `kind:verify-runtime`** — beadify's verification skeleton. Extract IDs, titles, the seam or journey each covers (from `metadata.seam`, `metadata.apis`, `metadata.events`, `metadata.journeys`, `metadata.artifacts`), and existing acceptance criteria. **These receive case specifications, not duplicates.**
+- **`kind:harness`** — the test infrastructure. Read these to learn which runner, fixtures, and services are already provisioned, so your case specs use them instead of inventing new ones.
+- **`kind:gate`** — the feature's definition-of-done bead. Any new test task you create must be something the gate depends on.
+
+Beads with no `kind:*` label predate this convention; treat them as implementation tasks.
 
 ### Step 4: Identify applicable test types
 
@@ -249,24 +294,43 @@ Present as a table or list per implementation task showing the scenario descript
 | "Implement user endpoint" | Test that POST /users with valid body returns 201 with ENT1-shaped response | API1.2 success, ENT1 |
 | "Implement user endpoint" | Test that POST /users with missing required fields returns 400 | API1.2 error case |
 
-### Step 2: Produce integration/e2e/UX test task specifications
+### Step 2: Specify integration/e2e/UX coverage
 
-For tests that span COMPs or need different environments, produce separate task specs. Each test task gets:
+For every test that spans COMPs or needs a different environment, first ask: **does a beadify verification bead already cover this?**
+
+Match candidate coverage against the feature's `kind:verify-*` beads:
+
+| Candidate coverage | Matches a verify bead when |
+|--------------------|---------------------------|
+| Integration test for an API or EVT boundary | A `kind:verify-seam` bead's `metadata.seam` names that API/EVT, or its `metadata.apis`/`metadata.events` includes it |
+| E2E test for a UC/UJ | A `kind:verify-journey` bead's `metadata.journeys` includes that UJ/UC |
+| Environment / image test | A `kind:verify-artifact` bead names that ART |
+| Performance, concurrency, or recovery test | A `kind:verify-runtime` bead names that TR |
+
+**If a verify bead matches — enrich it.** Produce an enrichment spec, not a new task:
+
+- **Target**: the existing bead's id
+- **Cases**: the concrete scenarios — inputs, expected outputs, error paths, edge cases — to append to the bead's acceptance criteria under a `## Test Cases` heading
+- **Label to add**: the matching `test:*` label (`test:integration`, `test:e2e`, `test:ux`)
+- **Do not change**: the bead's title, its `kind:*` label, its dependencies, or its priority. beadify set those deliberately — its no-mocks-at-the-seam requirement and its harness dependency are part of why the seam actually gets verified
+
+**If no verify bead matches — create a new test task.** This means either the coverage is unit-adjacent (UX tests often are), or beadify missed a seam. Say which, because the second case is a gap in the plan worth reporting rather than quietly patching. New test tasks get:
 
 - **Title**: descriptive, prefixed with test type (e.g., "Integration Test: API1 user service boundary", "E2E Test: user registration flow", "UX Test: dashboard accessibility")
 - **Type**: `task`
 - **Priority**: inherit from the highest-priority implementation task it depends on
-- **Labels**: `ep:EPX`, `ft:FTY`, `test:<type>` (e.g., `test:integration`, `test:e2e`, `test:ux`), `comp:COMPN` (if COMP-scoped)
+- **Labels**: `ep:EPX`, `ft:FTY`, `test:<type>` (e.g., `test:integration`, `test:e2e`, `test:ux`), `comp:COMPN` (if COMP-scoped), plus `proj:<slug>` if the feature's other beads carry one
 - **Description**: what's being tested and why, with contract/PRD references
-- **Acceptance criteria**: specific test scenarios with expected outcomes, referencing contract elements (ENT, API, EVT identifiers)
+- **Acceptance criteria**: specific test scenarios with expected outcomes, referencing contract elements (ENT, API, EVT identifiers), plus a runnable command that executes them
 - **Design**: reference pointers to test-plan feature doc section, contracts, swim lanes
-- **Dependencies**: which implementation tasks this test task blocks on (hard dependency)
+- **Dependencies**: which implementation tasks this test task blocks on (hard dependency), plus the feature's `kind:harness` bead if one exists
+- **Gate linkage**: the feature's `kind:gate` bead must depend on the new task, so the feature cannot be declared done without it
 
 For each test type, the following drives scenario identification:
 
-**Integration tests**: each API boundary (API identifier) between COMPs in the feature needs at least one integration test task. Scenarios come from API operations + error cases. Walk the floorplan's block diagram edges (BD) for the feature's COMPs — each edge with an API label is a candidate integration test boundary.
+**Integration tests**: each API boundary (API identifier) between COMPs in the feature needs at least one integration test. Scenarios come from API operations + error cases. Walk the floorplan's block diagram edges (BD) for the feature's COMPs — each edge with an API label is a candidate integration test boundary. beadify will usually have created a `kind:verify-seam` bead per boundary; enrich it. A boundary with no verify bead is a seam beadify missed — flag it.
 
-**E2E tests**: each UC/UJ in the feature PRD that involves this feature gets an e2e test task. Scenarios come from swim-lane diagrams (SL) — each message in the SL maps to a test step. The full sequence of messages in an SL diagram becomes the test's step-by-step flow.
+**E2E tests**: each UC/UJ in the feature PRD that involves this feature gets e2e coverage. Scenarios come from swim-lane diagrams (SL) — each message in the SL maps to a test step. The full sequence of messages in an SL diagram becomes the test's step-by-step flow. Enrich the matching `kind:verify-journey` bead where one exists.
 
 **UX tests**: UI-facing features get UX test tasks. Scenarios cover interaction flows, accessibility, visual correctness. These are derived from the feature PRD's user-facing acceptance criteria and any UI wireframes or mockups referenced.
 
@@ -281,17 +345,18 @@ For each test type, the following drives scenario identification:
 - **Devcontainer completeness tests**: a fresh devcontainer build succeeds, all declared services are reachable, and the full test suite passes (validates the "Devcontainer Configuration" section)
 - **Parity checks**: language runtime versions, system dependencies, and service versions match between the devcontainer and production image where applicable
 
-Produce one test task for production image validation and one for devcontainer validation. These are typically CI-level tasks rather than feature-scoped, so attach them to the epic level if no single feature owns them.
+Enrich the matching `kind:verify-artifact` beads where beadify created them. Otherwise produce one test task for production image validation and one for devcontainer validation. These are typically CI-level tasks rather than feature-scoped, so attach them to the epic level if no single feature owns them.
 
 ### Step 3: Build coverage matrix
 
 After all specs for the feature, build a coverage matrix mapping every FR sub-item to its test coverage:
 
-| FR Sub-item | Implementation task | Unit test specs | Integration/E2E/UX test task |
-|-------------|--------------------|-----------------|-----------------------------|
-| FR3.1 | "Implement user model" | 3 scenarios | Integration: API1 boundary |
-| FR3.2 | "Implement user endpoint" | 5 scenarios | E2E: registration flow |
-| FR3.3 | ⚠ NOT COVERED | — | — |
+| FR Sub-item | Implementation task | Unit test specs | Integration/E2E/UX coverage | Disposition |
+|-------------|--------------------|-----------------|----------------------------|-------------|
+| FR3.1 | "Implement user model" | 3 scenarios | Integration: API1 boundary | enrich `abc-12` (verify-seam) |
+| FR3.2 | "Implement user endpoint" | 5 scenarios | E2E: registration flow | enrich `abc-19` (verify-journey) |
+| FR3.3 | "Implement user search" | 2 scenarios | Integration: API4 boundary | ⚠ new task — no verify bead (seam gap) |
+| FR3.4 | ⚠ NOT COVERED | — | — | — |
 
 **Every FR and FR sub-item must have at least unit test coverage through its implementation task.** If gaps exist, add test scenarios to cover them or flag the gap for discussion with the user.
 
@@ -316,13 +381,15 @@ Present which scenarios are candidates for the feature doc and which are task-on
 
 Present per-feature:
 1. Unit test specs for each implementation task (with scenario descriptions)
-2. Integration/e2e/UX test task specs (with full task fields)
-3. Coverage matrix
-4. Feature-doc candidates
+2. Enrichment specs for beadify's verify beads (target bead id, cases, label to add)
+3. New test task specs, each with the reason no verify bead covered it
+4. Coverage matrix
+5. Feature-doc candidates
+6. Any seam gaps or missing harness beads found along the way
 
 Offer commit checkpoint (following the beadify pattern):
 
-"Confirm test specs for **FTY — [feature name]**? (**N unit test scenarios** across **M impl tasks**, **K new test tasks**, **L feature-doc scenarios**. **P features** remaining in EPX.)"
+"Confirm test specs for **FTY — [feature name]**? (**N unit test scenarios** across **M impl tasks**, **J verify beads enriched**, **K new test tasks**, **L feature-doc scenarios**. **P features** remaining in EPX.)"
 
 The user can:
 - **Confirm** — proceed to the next feature or to Phase 3 if all features are done
@@ -439,59 +506,108 @@ Format the appended section:
 - [scenario description] (validates [ENT/API/EVT identifier])
 ```
 
-### Step 2: Create test tasks
+### Step 2: Enrich beadify's verification beads
 
-For each integration/e2e/UX test task, follow a two-step create+update pattern (same as beadify — `bd create` doesn't support `--acceptance-criteria` or `--design` flags):
+For each verify bead with an enrichment spec, append the cases to its acceptance criteria and add the `test:*` label. Read the existing criteria first — do not overwrite beadify's no-mocks-at-the-seam requirement or its runnable verification command.
 
 ```bash
-# Step 1: Create the issue
-bd create --type task --title "[test task title]" \
+bd show [verify-bead-id] --json
+```
+
+Append a `## Test Cases` section to the existing acceptance criteria, then add the label:
+
+```bash
+bd update [verify-bead-id] --acceptance "[existing criteria + appended test cases section]"
+bd label add [verify-bead-id] test:integration
+```
+
+If `bd label add` is unavailable in the installed `bd`, pass the full label set to `bd update --labels`, including every label the bead already had — `--labels` replaces rather than appends.
+
+Record the case specification's provenance with a comment:
+
+```bash
+bd comment [verify-bead-id] --file cases.md
+```
+
+Do NOT add dependencies to an enriched bead. beadify already blocked it on both sides' implementation, the wiring bead, and the harness.
+
+### Step 3: Create the remaining test tasks
+
+For coverage with no matching verify bead, create a task. `bd create` accepts `--design`, `--acceptance`, and `--notes` directly — no create-then-update two-step is needed:
+
+```bash
+bd create "[test task title]" \
+  --type task \
   --parent [feature-issue-id] \
   --labels "ep:EPX,ft:FTY,test:integration,comp:COMPN" \
   --external-ref "FRZ" \
   --priority [P0-P4] \
-  --description "[test description]" \
+  --body-file description.md \
+  --design-file design.md \
+  --acceptance "[test scenarios with expected outcomes, plus a runnable command]" \
+  --no-inherit-labels \
   --silent
-
-# Step 2: Set acceptance criteria and design (not available on bd create)
-bd update [test-task-id] --acceptance-criteria "[test scenarios with expected outcomes]"
-bd update [test-task-id] --design "[reference pointers to test-plan doc, contracts, swim lanes]"
 ```
 
-### Step 3: Add dependencies
+`bd create` inherits the parent's labels by default; pass `--no-inherit-labels` when you want only the labels you named. Prefer `--body-file` and `--design-file` over passing long markdown through shell arguments.
 
-For each test task, add a blocks dependency on the implementation tasks it requires:
+### Step 4: Add dependencies
+
+There is **no dependency-strength flag** on `bd dep add`. Encode strength in the edge type: `blocks` is hard (the blocked issue is excluded from `bd ready`), `related` is advisory. Record the reason in a comment rather than in metadata.
+
+For each new test task, add a `blocks` dependency on the implementation tasks it requires, plus the feature's harness bead if one exists:
 
 ```bash
-bd dep add [test-task-id] [impl-task-id] \
-  --type blocks \
-  --metadata '{"strength": "hard", "reason": "test requires implementation complete"}'
+bd dep add [test-task-id] [impl-task-id] --type blocks
+bd dep add [test-task-id] [harness-bead-id] --type blocks
+```
+
+Only one edge may exist between any pair of issues — `bd dep add` fails if a different type is already there. If an edge exists, leave it and note the additional relationship in a comment.
+
+To wire many dependencies at once, use newline-delimited JSON:
+
+```bash
+# deps.ndjson — one object per line:
+# {"from":"[test-task-id]","to":"[impl-task-id]","type":"blocks"}
+bd dep add --file deps.ndjson
+```
+
+Then make the feature's gate bead depend on each new test task, so the feature cannot be closed without it:
+
+```bash
+bd dep add [gate-bead-id] [test-task-id] --type blocks
 ```
 
 For cross-feature test dependencies (e.g., an e2e test that spans features), follow the same fallback pattern as beadify: if the other feature's tasks exist, depend on the specific task; otherwise fall back to the feature-level issue.
 
 ```bash
-bd dep add [test-task-id] [other-feature-task-or-issue-id] \
-  --type blocks \
-  --metadata '{"strength": "hard", "reason": "test requires cross-feature implementation complete"}'
+bd dep add [test-task-id] [other-feature-task-or-issue-id] --type blocks
 ```
 
-### Step 4: Commit checkpoint
+Explain each non-obvious edge in a comment on the test task:
+
+```bash
+bd comment [test-task-id] -m "Blocked by [impl-task-id]: test requires implementation complete."
+```
+
+### Step 5: Commit checkpoint
 
 Present before writing:
 
-"Write **N unit test spec updates** and **M new test tasks** with **K dependencies** for **FTY — [feature name]** to bd now?"
+"Write **N unit test spec updates**, **J verify bead enrichments**, and **M new test tasks** with **K dependencies** for **FTY — [feature name]** to bd now?"
 
 Prompt the user: "Would you like to review the bd issues before I write them, or should I go ahead and write?"
 
 If the user wants to review, present them and wait for approval. If they choose to skip, write directly. **Autopilot:** skip review and write directly.
 
-### Step 5: Confirm success
+### Step 6: Confirm success
 
 After writing, report:
 - Number of implementation tasks updated with test scenarios
-- Number of test tasks created (broken down by type)
+- Number of verify beads enriched, broken down by kind
+- Number of test tasks created, broken down by type
 - Number of dependencies added
+- Any seam gaps or missing harness beads that remain
 - Any issues encountered
 
 ---
@@ -606,6 +722,18 @@ Report any issues found:
 - Dependency cycles (especially between implementation and test tasks)
 - Orphaned test tasks (no dependencies)
 - Missing test coverage (features with no `test:*` labels)
+- `kind:verify-*` beads that received no case specification — the skeleton exists but nobody wrote the cases
+- Seams with no verify bead and no new test task — genuine coverage gaps
+- New test tasks the feature's gate bead does not depend on — the feature could be closed without them
+
+Find un-enriched verify beads directly:
+
+```bash
+bd query --label ep:EPX --json \
+  | jq -r '.[] | select([.labels[]? | startswith("kind:verify-")] | any)
+           | select([.labels[]? | startswith("test:")] | any | not)
+           | "\(.id)\t\(.title)"'
+```
 
 ### Suggest next steps
 
@@ -616,6 +744,7 @@ After validation (or if the user skips it):
   - Use `bd ready` to find tasks with no blockers
   - Assign tasks to agents with `bd update [id] --assignee [agent]`
   - Run this skill again for the next epic in dependency order
+  - Run `beadify` as a completion pass on any feature that showed seam gaps or a missing harness bead
   - Use `bv` TUI for an interactive view of the task graph
 
 ---
@@ -628,7 +757,9 @@ After validation (or if the user skips it):
 - Do NOT create test specs without user review and confirmation
 - Do NOT invent test scenarios — trace back to FRs, contracts, floorplan elements, and swim lanes. If coverage is incomplete, flag the gap rather than filling it with assumptions
 - When a feature already has test tasks (tasks with `test:*` labels exist in `bd`), skip it unless the user explicitly asks to re-plan
-- Test infrastructure (frameworks, environments, CI) is out of scope — that's floorplan and tech-plan territory
+- **Enrich beadify's `kind:verify-*` beads; do not duplicate them.** A parallel test task for a seam that already has a verify bead splits the work in two and leaves both halves half-done
+- **Never remove or rewrite a `kind:*` label**, and never relax a verify bead's no-mocks-at-the-seam requirement
+- Building test infrastructure (runners, fixtures, service provisioning, CI jobs) belongs to beadify's `kind:harness` beads, and choosing the frameworks belongs to tech-plan. This skill specifies the cases that run in that infrastructure — when it is missing, say so rather than specifying tests with nowhere to run
 - Prefer precision over verbosity in test scenario descriptions — cite the specific contract elements, don't repeat the contract content
 - Unit test specs augment existing implementation tasks; they do NOT create new tasks
-- Integration, e2e, and UX test specs create new tasks as siblings of implementation tasks under the feature
+- Integration, e2e, and UX specs enrich existing verification beads where they exist, and create new tasks only where they don't

@@ -70,7 +70,9 @@ Routine unit/integration tests are NOT enumerated — they're implied by accepta
 
 ### Not in scope for this document
 
-Test infrastructure (frameworks, environments, CI configuration) — that's floorplan and tech-plan territory.
+**Choosing** test frameworks and environments is tech-plan territory. **Building** the harness they run in — runner configuration, real dependency provisioning, fixtures, seed data, CI jobs — belongs to beadify's `kind:harness` beads.
+
+This skill specifies the cases that run in that harness. When the harness is missing, it says so rather than specifying tests with nowhere to run: that combination is how a test plan ends up written and never executed.
 
 ## Output: `bd` Tasks
 
@@ -80,17 +82,36 @@ Unit test specifications are added to the implementation task's description fiel
 
 beadify already includes "New tests cover all acceptance criteria above" in acceptance criteria. test-plan adds the specifics of *what* tests to write.
 
-### Integration, E2E, UX tests: separate `bd` tasks
+### Integration, E2E, UX tests: enrich beadify's verification beads
+
+beadify creates the verification **skeleton** — one bead per seam, journey, artifact, and TR (`kind:verify-seam`, `kind:verify-journey`, `kind:verify-artifact`, `kind:verify-runtime`), already blocked on both sides' implementation, the wiring, and the harness. This skill supplies the **cases**.
 
 ```
 Feature (feature)
-  ├── Impl Task A (task)
-  ├── Impl Task B (task)
-  └── Integration Test: API1 boundary (task)
-        depends on: Impl Task A, Impl Task B (blocks, hard)
+  ├── Impl Task A (task, kind:impl)
+  ├── Impl Task B (task, kind:impl)
+  ├── Wire A↔B (task, kind:wiring)
+  ├── Prove API1 boundary (task, kind:verify-seam)   ← enrich this
+  │     + ## Test Cases appended to acceptance criteria
+  │     + test:integration label added
+  └── Feature gate (task, kind:gate)
+        depends on: all siblings
 ```
 
-Test tasks are siblings of implementation tasks under the feature, with `blocks` dependencies on the implementation tasks they require. Feature can't close until all children (impl + test) are done.
+Enrichment appends a `## Test Cases` section to the existing bead's acceptance criteria and adds the `test:*` label to it. Nothing else about the bead changes — not its title, its `kind:*` label, its dependencies, or its priority. beadify's no-mocks-at-the-seam requirement and its harness dependency are part of why the seam actually gets verified.
+
+A new sibling task is created only when **no** verify bead covers the coverage. That case is worth reporting: either the coverage is unit-adjacent (UX tests often are), or beadify missed a seam. New tasks get `blocks` dependencies on the implementation they require plus the harness bead, and the feature's gate bead is made to depend on them so the feature cannot close without them.
+
+**Why enrich rather than duplicate:** a seam with two half-done beads — a skeleton with no cases and a case list with no harness wiring — is worse than one complete bead. Splitting the work is how integration tests end up specified but never built.
+
+### Label namespaces
+
+| Namespace | Owner | Meaning |
+|-----------|-------|---------|
+| `kind:*` | beadify | What kind of work this bead is |
+| `test:*` | test-plan | Which test level this bead's cases belong to |
+
+beadify never emits a `test:*` label, which is what makes the "skip features that already have one" rule safe: any `test:*` label was put there by this skill.
 
 ### Test task fields
 
@@ -128,7 +149,7 @@ HARD-GATE: user confirms test types before proceeding.
 Per feature:
 
 - **Unit test specs**: draft scenario descriptions for each implementation task, with contract references
-- **Integration/E2E/UX test task specs**: draft separate task specifications
+- **Integration/E2E/UX coverage**: match each candidate against the feature's `kind:verify-*` beads. Draft an enrichment spec where one matches; draft a new task spec, with the reason no verify bead covered it, where none does
 - **Coverage matrix**: map FRs → implementation tasks → test coverage
 - Present for user review
 

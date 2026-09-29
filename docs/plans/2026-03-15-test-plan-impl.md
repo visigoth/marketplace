@@ -101,7 +101,7 @@ For each implementation task:
 
 **Step 2: Write Phase 2 — integration/e2e/UX test task specifications**
 
-For tests that span COMPs or need different environments, produce separate task specs:
+For tests that span COMPs or need different environments, first check whether a `kind:verify-*` bead from beadify already covers the seam, journey, artifact, or TR. If one does, produce an enrichment spec (target bead id, cases to append, `test:*` label to add) instead of a task spec. Produce a task spec only where nothing covers it:
 - Title, type, priority, labels (including `test:<type>`), external-ref
 - Description with contract/PRD references
 - Acceptance criteria: specific test scenarios with expected outcomes
@@ -207,37 +207,60 @@ bd update [task-id] --description "[updated description with test scenarios appe
 
 Show the pattern: append test scenarios to existing description, don't overwrite.
 
-**Step 2: Write the `bd create` flow for test tasks**
+**Step 2: Write the enrichment flow for beadify's verify beads**
 
-For each integration/e2e/UX test task:
+For each `kind:verify-*` bead with an enrichment spec, read the existing criteria, append a `## Test Cases` section, and add the `test:*` label. Do not overwrite beadify's no-mocks-at-the-seam requirement or its runnable verification command.
 
 ```bash
-bd create --type task --title "[test task title]" \
+bd show [verify-bead-id] --json
+bd update [verify-bead-id] --acceptance "[existing criteria + appended ## Test Cases]"
+bd label add [verify-bead-id] test:integration
+bd comment [verify-bead-id] --file cases.md
+```
+
+`bd update --labels` *replaces* the label set, so use `bd label add` where available; otherwise pass every label the bead already had.
+
+Add no dependencies to an enriched bead — beadify already blocked it on both sides' implementation, the wiring, and the harness.
+
+**Step 3: Write the `bd create` flow for the remaining test tasks**
+
+Only for coverage no verify bead matched. `bd create` accepts `--design`, `--acceptance`, and `--notes` directly, so there is no create-then-update two-step:
+
+```bash
+bd create "[test task title]" \
+  --type task \
   --parent [feature-issue-id] \
   --labels "ep:EPX,ft:FTY,test:integration,comp:COMPN" \
   --priority [P0-P4] \
-  --description "[test description]" \
+  --body-file description.md \
+  --design-file design.md \
+  --acceptance "[test scenarios with expected outcomes, plus a runnable command]" \
+  --no-inherit-labels \
   --silent
-
-bd update [test-task-id] --acceptance-criteria "[test scenarios]"
-bd update [test-task-id] --design "[reference pointers]"
 ```
 
-**Step 3: Write the dependency creation flow**
+`bd create` inherits the parent's labels unless `--no-inherit-labels` is passed. Prefer `--body-file` and `--design-file` over long markdown in shell arguments.
+
+**Step 4: Write the dependency creation flow**
+
+`bd dep add` has no `--metadata` flag. Strength is the edge type — `blocks` is hard and excludes the blocked issue from `bd ready`, `related` is advisory — and the reason goes in a comment. Only one edge may exist per pair; a second `bd dep add` with a different type fails rather than replacing.
 
 ```bash
-bd dep add [test-task-id] [impl-task-id] \
-  --type blocks \
-  --metadata '{"strength": "hard", "reason": "test requires implementation complete"}'
+bd dep add [test-task-id] [impl-task-id]  --type blocks
+bd dep add [test-task-id] [harness-bead-id] --type blocks
+bd dep add [gate-bead-id] [test-task-id]  --type blocks   # feature can't close without it
+bd comment [test-task-id] -m "Blocked by [impl-task-id]: test requires implementation complete."
 ```
 
-**Step 4: Write the commit checkpoint and HARD-GATE**
+For many edges at once, `bd dep add --file deps.ndjson` takes one `{"from","to","type"}` object per line.
+
+**Step 5: Write the commit checkpoint and HARD-GATE**
 
 Same pattern as beadify: present count of updates/creates, let user confirm before writing.
 
-**Step 5: Write the success report**
+**Step 6: Write the success report**
 
-Report: tasks updated, test tasks created, dependencies added, any issues.
+Report: impl tasks updated, verify beads enriched (by kind), test tasks created (by type), dependencies added, seam gaps or missing harness beads remaining, any issues.
 
 **Step 6: Commit**
 
@@ -272,7 +295,8 @@ Offer `bv --robot-plan` to validate dependency graph after writing. Report cycle
 - Do NOT create test specs without user review
 - Do NOT invent test scenarios — trace back to FRs, contracts, floorplan
 - When a feature already has test tasks (tasks with `test:*` labels), skip unless user asks to re-plan
-- Test infrastructure is out of scope (floorplan/tech-plan territory)
+- Choosing test frameworks is tech-plan territory; building the harness is beadify's `kind:harness` beads
+- Enrich beadify's `kind:verify-*` beads rather than creating parallel test tasks for the same seam
 
 **Step 4: Commit**
 

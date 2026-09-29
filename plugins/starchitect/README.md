@@ -48,11 +48,17 @@ Create Technical Design Documents that describe how the system fulfills its func
 
 ### 7. beadify
 
-Convert features into implementation task hierarchies in beads (`bd`). Each task is scoped to a single component so agents can work in parallel without file conflicts. Tasks reference contracts, floorplan elements, TRs, and FRs for full traceability.
+Convert features into a complete implementation task graph in beads (`bd`) — including the wiring, test-harness, and integration-verification work that makes the feature actually run.
+
+Three ledgers drive the decomposition. The **capture ledger** gives every identifier in every upstream document an explicit disposition, so nothing in the plan is silently dropped. The **seam ledger** enumerates every place two things must meet — block-diagram edges, API providers and each consumer, event publishers and each subscriber, data-flow crossings, persisted entities, external dependencies, process boundaries, config and auth boundaries — and answers two questions per row: which bead makes this seam *live*, and which bead *proves* it. The **journey ledger** tracks what a human can actually run at the end.
+
+Beads carry a `kind:*` label — `scaffold`, `contract-types`, `harness`, `skeleton`, `impl`, `wiring`, `verify-seam`, `verify-journey`, `verify-artifact`, `verify-runtime`, `ops`, `gate`, and others. Implementation beads stay scoped to a single component so agents work in parallel without file conflicts; wiring, harness, and verification beads are exempt, because integration work is cross-component by nature and forbidding it is what leaves plans producing unwired code. Gate beads per feature and per epic require running a demonstration command and posting the output before anything is called done.
+
+Every bead is written to pass the orphan-context test: an agent that opens it with no other document available should be able to do the work correctly. A mandatory Background & Intent comment records where the work came from, what it's really for, how it serves the larger goal, what was considered and rejected, and what future-you should know.
 
 ### 8. test-plan
 
-Produce test specifications from PRDs, contracts, and task hierarchies. Adds unit test specs to implementation tasks and creates separate tasks for integration, e2e, and UX tests. TRs from TDDs become additional test targets.
+Produce test specifications from PRDs, contracts, and task hierarchies. Adds unit test specs to implementation tasks, then **enriches beadify's verification beads** with case-level specs — appending the concrete inputs, expected outputs, and error paths to the bead that already owns each seam — rather than creating a parallel task beside it. New test tasks are created only for coverage no verification bead claims, and that case is reported, since it usually means a seam went unnoticed. TRs from TDDs become additional test targets.
 
 ### 9. artifacts
 
@@ -89,12 +95,26 @@ Each skill can be invoked by name or trigger phrase:
 | tdd | `docs/tdd.org` or `docs/tdd.md` + `docs/tdd/` |
 | prd-feature-breakdown | `docs/features/index.org` + `docs/features/*.org` |
 | beadify | `.beads/` (via `bd` CLI) |
-| test-plan | `.beads/` (via `bd` CLI) + `docs/testing/` |
+| test-plan | `.beads/` (via `bd` CLI) + `docs/test-plan.org` or `docs/test-plan.md` + `docs/test-plan/` |
 | artifacts | `docs/artifacts.org` or `docs/artifacts.md` (+ `docs/artifacts/` when split) |
+
+## Division of labor: beadify and test-plan
+
+These two skills share the verification work and must not duplicate it.
+
+| | beadify | test-plan |
+|---|---------|-----------|
+| **Owns** | Which seams, journeys, and artifacts must be proven; the harness to prove them in | The cases: inputs, expected outputs, error paths, edge cases |
+| **Labels** | `kind:verify-*`, `kind:harness` | `test:unit`, `test:integration`, `test:e2e`, `test:ux` |
+| **Granularity** | One bead per seam / journey / artifact / TR | Case-level specs attached to beads |
+
+beadify never emits a `test:*` label, which is what makes test-plan's "skip features that already have one" rule safe. Run beadify first.
 
 ## Philosophy
 
 Starchitect is about doing the thinking before the typing. Each skill is a checkpoint that forces you to make decisions explicitly rather than discovering them mid-implementation. The artifacts form a chain of traceability: every task traces back to FRs, every FR traces back to capabilities, every capability traces back to the original product vision.
+
+The graph beadify produces answers a narrower question than "is every requirement assigned to someone": **when every bead is closed, is there something a human can run?** A plan can cover every functional requirement and still ship nothing, if the boundaries between the covered pieces belong to no task. That is what the seam ledger exists to prevent.
 
 ## Superpowers
 

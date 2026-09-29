@@ -1,38 +1,72 @@
 ---
 name: starchitect:beadify
 description: >
-  Break features into implementation task hierarchies in bd (beads). Reads the feature index,
-  then lazily loads feature PRDs, floorplan, contracts, and technology choices as needed.
-  Produces component-scoped tasks with dependencies that expose parallelizable work for agents.
+  Turn a plan into a complete, self-documenting implementation task graph in bd (beads).
+  Captures every FR, AC, TR, contract, seam, journey, and artifact from the planning documents
+  into beads with rich background, rationale, and acceptance criteria — including the wiring,
+  test-harness, and integration-verification work that makes the feature actually run. Reads
+  the feature index, then lazily loads feature PRDs, floorplan, contracts, TDDs, technology
+  choices, and artifacts as needed.
   Triggers: "beadify", "taskify", "create tasks", "break into tasks", "implementation tasks",
   "task hierarchy", "decompose into tasks".
 user-invocable: true
 ---
 
-# beadify: Features to Implementation Tasks
+# beadify: Plan to Implementation Task Graph
 
-Decompose features into implementation task hierarchies in `bd` (beads). Each task is scoped to a single architectural component (COMP) so that agents can work in parallel without file conflicts. Contracts define the interfaces agents code against.
+Convert a plan into a `bd` (beads) task graph that a team of agents can execute to arrive at a **running, verified, shippable** system — not a pile of implemented-but-unwired modules.
 
-Your output is `bd` issues — epics, features, and tasks with structured fields, dependencies, and traceability back to the PRD, floorplan, and contracts.
+Your output is `bd` issues: epics, features, tasks, and subtasks with structured fields, typed dependencies, per-bead narrative comments, and traceability back to every identifier in the plan.
 
 <HARD-GATE>
-Do NOT skip to creating tasks. Every task hierarchy must be presented to the user for review and confirmation before writing to `bd`. Do NOT load all documents upfront — load lazily as each feature is visited.
+Do NOT skip to creating beads. Every task graph must be presented to the user for review and confirmation before writing to `bd`. Do NOT load all documents upfront — load lazily as each feature is visited. Do NOT emit `test:*` labels; those belong to the test-plan skill.
 </HARD-GATE>
+
+## Reasoning Budget
+
+**This skill requires your maximum reasoning depth.** Decomposition errors here are expensive and invisible: a missing wiring bead does not fail loudly, it produces a codebase where every module is "done" and nothing works. The cost of thinking harder is minutes; the cost of thinking less is days of integration archaeology.
+
+- **Claude Code / Claude:** engage `ultrathink`-level extended thinking for the whole session.
+- **Other hosts:** set the highest available thinking or reasoning-effort level before starting.
+- If your host exposes no such control, slow down deliberately: write out the ledgers (Phase 2) in full before proposing a single bead.
+
+If you were invoked without an extended-thinking directive, say so once at the start — "This skill works best with maximum thinking enabled; I'm running at the deepest level available to me" — and continue. Do not stop to ask.
+
+Three points demand the most thought, and each is marked **[THINK DEEPLY]** below:
+
+1. Building the **seam ledger** (Phase 2) — the step that closes the integration gap.
+2. **Decomposing** each ledger row into bead layers (Phase 3).
+3. Wiring the **dependency graph** (Phase 5) — where false parallelism hides.
+
+## The Completeness Contract
+
+Every run must satisfy four invariants. State them to the user at the start, and check each one explicitly in Phase 8.
+
+1. **Nothing in the plan is lost.** Every identifier in scope (CAP, P, UC, UJ, FR, AC, G, NG, COMP, BD, DF, SL, ENT, API, EVT, TR, ART) is either represented in a bead or explicitly recorded as out of scope with a reason.
+2. **Nothing is unreachable.** Every piece of implemented behavior is wired into a composition root, a route table, a subscriber registry, a CLI surface, a build graph — some path by which real execution reaches it.
+3. **Nothing is unverified.** Every seam has an automated test that exercises both sides for real. Every acceptance criterion has a bead that proves it. Every artifact has a bead that builds and runs it.
+4. **Nothing is unexplained.** Every bead carries enough background, rationale, and context that an agent with no memory of the plan can execute it correctly from the bead alone.
 
 ## Autopilot Mode
 
-When invoked with the word **"autopilot"** (e.g., "beadify on autopilot", "beadify autopilot"), all confirmation gates below become **soft**: the skill still presents its output at each checkpoint but proceeds immediately without waiting for user confirmation. The user can interrupt at any point to adjust.
+When invoked with the word **"autopilot"** (e.g., "beadify on autopilot"), all confirmation gates below become **soft**: the skill still presents its output at each checkpoint but proceeds immediately without waiting for user confirmation. The user can interrupt at any point to adjust.
 
-Autopilot does NOT skip content — it skips waiting. You still show your work at every gate.
+Autopilot does NOT skip content — it skips waiting. You still show your work at every gate, and you still run every validation rule.
 
 ## Checklist
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Discover & scope** — check for beads, load feature index only, determine which epic to taskify next
-2. **Decompose features into tasks** — per feature: lazy-load docs, analyze FRs + contracts + floorplan, produce component-scoped tasks
-3. **Review & commit** — present per-feature, offer commit checkpoints, write to `bd` when user confirms
-4. **Validate** — after epic is fully committed, offer `bv --robot-plan` validation
+1. **Discover & scope** — check for beads, inventory the plan documents, pick the scope, name what's missing
+2. **Load the plan** — lazily read the documents for the chosen scope
+3. **Build the ledgers** — capture ledger, seam ledger, journey & artifact ledger **[THINK DEEPLY]**
+4. **Decompose into bead layers** — turn each ledger row into beads **[THINK DEEPLY]**
+5. **Write bead content** — self-documenting descriptions, design, acceptance criteria, notes, comments
+6. **Wire the graph** — dependencies, ordering, parallelism, gates **[THINK DEEPLY]**
+7. **Review & commit** — present per-feature, get confirmation
+8. **Write to bd** — graph plan, comments, verification
+9. **Validate** — run every validation rule, report pass/fail
+10. **Handoff** — tell the user what to run next
 
 ---
 
@@ -46,386 +80,950 @@ If not found:
 - Tell the user: "No beads workspace found. Run `bd init` to initialize one, then re-run this skill."
 - Stop here.
 
-### Load the feature index
+Do not run `bd init` yourself — prefix and storage mode are the user's choice.
 
-Search for the feature index:
+### Inventory the plan documents
 
-| Document | Locations to check |
-|----------|--------------------|
-| **Feature index** | `docs/features/index.org`, `docs/features/index.md` |
+Use Glob to check every location. Read nothing yet except the feature index.
 
-Use Glob to check both locations. Read the one that exists.
+| Document | Locations to check | What beadify needs from it |
+|----------|--------------------|---------------------------|
+| **Feature index** | `docs/features/index.org`, `docs/features/index.md` | Epic/feature structure (EP, FT), dependency graph, phases |
+| **Feature PRDs** | `docs/features/<slug>.{org,md}` | FRs, ACs, UCs, scope boundaries |
+| **Root PRD** | `docs/prd.{org,md}` | CAP, P, UC, UJ, G, NG — context and journeys |
+| **Floorplan** | `docs/floorplan.{org,md}` | COMP, BD edges, DF flows, SL sequences |
+| **Contracts** | `docs/contracts.{org,md}`, `docs/contracts/` | ENT schemas, API operations, EVT events |
+| **TDDs** | `docs/tdd.{org,md}`, `docs/tdd/` | TR statements, algorithms, trade-offs, deferred improvements |
+| **Technology** | `docs/technology.{org,md}` | Languages, frameworks, test tooling, CI |
+| **Artifacts** | `docs/artifacts.{org,md}`, `docs/artifacts/` | ART catalog, source paths, packaging, signing |
 
-If not found:
-- Tell the user: "No feature index found. Run the prd-feature-breakdown skill first to create one."
-- Stop here.
+Report the inventory to the user as a table with ✅ found / ❌ missing.
 
-**Do NOT load feature PRDs, contracts, floorplan, or technology choices at this point.** The feature index contains the epic/feature hierarchy, dependency graph, and implementation phases — that is sufficient for scoping.
+**Missing documents are gaps, not blockers.** Name the consequence of each so the user can decide:
+
+| Missing | Consequence you must state |
+|---------|---------------------------|
+| Feature index | No epic/feature structure — offer the ad-hoc entry path below |
+| Floorplan | No component boundaries or BD edges — the seam ledger will be incomplete and wiring beads will be guesses |
+| Contracts | No ENT/API/EVT — no contract-types beads and no seam verification targets |
+| TDD | No TRs — non-functional behavior (performance, concurrency, recovery) will go unverified |
+| Technology | No test tooling or CI target — harness beads will name no concrete framework |
+| Artifacts | **Nothing will be shippable** — no build, package, or install beads; the epic completes with no runnable output |
+
+For each missing document ask once: "Proceed without it, or run `<skill>` first?" In autopilot, proceed and record the gap in the epic's Background & Intent comment.
+
+### Ad-hoc entry path
+
+If there is no feature index but the user has a plan (a design doc, a written brief, an issue, or a verbal description), you can still run:
+
+1. Read or transcribe the plan into a scratch file so you can cite it.
+2. Synthesize the minimum structure: one epic, plus a feature for each coherent chunk of work.
+3. Derive pseudo-identifiers for traceability (`FR-adhoc-1`, `COMP-adhoc-api`) and record in the epic comment that they are synthesized, not from a PRD.
+4. Run every remaining phase unchanged. The seam ledger matters **more** here, not less — an ad-hoc plan has no floorplan to cross-check against.
+5. At handoff, recommend running the missing starchitect skills to backfill real identifiers.
 
 ### Propose and confirm the project slug
 
-Every issue this skill creates (epics, features, and tasks) must carry a `proj:<slug>` label so the entire project can be filtered as a unit in `bd`.
+Every bead this skill creates carries a `proj:<slug>` label so the whole project can be filtered as a unit.
 
-**Step 1 — Generate a candidate slug.** Derive it from one of the following, in order of preference:
+**Step 1 — generate a candidate.** Derive from, in order of preference: the project name at the top of the feature index; the product name in the PRD; the repository directory name. Slugify: lowercase, hyphens for spaces, no special characters, shortened (e.g., "Acme Internal Customer Portal" → `acme-portal`).
 
-1. The project name or title at the top of the feature index
-2. The product name from the PRD if easily discoverable
-3. The repository directory name (last path component of the working directory)
-
-Slugify the chosen source: lowercase, hyphens for spaces, no special characters. Shorten long names to keep the slug concise (e.g., "Acme Internal Customer Portal" → `acme-portal`).
-
-**Step 2 — Check for existing project slugs in `bd`:**
+**Step 2 — find existing slugs:**
 
 ```bash
 bd list --json | jq -r '.[].labels[]? | select(startswith("proj:"))' | sort -u
 ```
 
-**Step 3 — Present options to the user.** Offer both your generated slug and any existing `proj:*` slugs found in `bd`, and let the user pick one or supply their own:
-
-- If existing slugs are found, present them as options alongside the generated candidate (e.g., "Existing projects in this workspace: `proj:foo`, `proj:bar`. Generated candidate: `proj:acme-portal`. Which should I use, or would you like to supply a different slug?").
-- If no existing slugs are found, present just the generated candidate and ask the user to confirm or override.
-
-Consider whether any of the existing slugs actually apply to the current work — if one clearly matches the epic/feature being taskified, recommend it. Otherwise, let the user choose.
+**Step 3 — present options.** Offer the generated candidate alongside any existing `proj:*` slugs. If one of the existing slugs clearly matches the work at hand, recommend it. Otherwise let the user choose or supply their own.
 
 <HARD-GATE>
-Do NOT proceed until the user has explicitly confirmed the project slug. Remember the confirmed slug for the entire session — it must be applied to every `bd create` call in Phase 3.
+Do NOT proceed until the user has confirmed the slug — a wrong slug makes every downstream query wrong. Remember it for the whole session; it goes on every bead.
 
-**Autopilot:** Present the slug options, then proceed immediately with the recommended slug.
+**Autopilot:** present the options, then proceed with the recommended slug.
 </HARD-GATE>
 
-### Determine what's already taskified
+### Determine what's already beadified
 
-Query `bd` for existing issues:
+For each epic and feature in the index:
 
 ```bash
-bd list --type epic --json
-bd list --type feature --json
+bd query --label proj:<slug> --label ep:<EP-id> --json
+bd query --label proj:<slug> --label ft:<FT-id> --json
 ```
 
-From the results, determine which epics and features already have corresponding issues in `bd`. A feature is considered taskified if a `feature`-type issue with a matching `ft:FTN` label exists.
+Classify each feature:
 
-### Identify the next epic to taskify
+- **Not started** — no beads. Full decomposition.
+- **Partial** — beads exist but the Phase 8 validation rules would fail (for example, impl beads with no wiring, harness, or verification beads). **This is the common case for features beadified by an earlier version of this skill.** Offer a **completion pass**: add the missing wiring, harness, verification, and gate beads without duplicating existing impl beads.
+- **Complete** — beads exist and all validation rules pass. Skip unless the user asks for a re-pass.
 
-Using the feature index's implementation ordering (suggested phases and dependency graph):
+To judge "partial" quickly, count beads by kind:
 
-1. Walk the epics in dependency order
-2. For each epic, check if all its features are taskified
-3. The first epic with un-taskified features is the recommendation
+```bash
+bd query --label proj:<slug> --label ft:<FT-id> --json \
+  | jq -r '.[].labels[]? | select(startswith("kind:"))' | sort | uniq -c
+```
 
-### Present scope recommendation
+A feature with `kind:impl` beads but no `kind:wiring` and no `kind:verify-*` beads is exactly the failure mode this skill exists to fix.
 
-Present to the user:
+### Present scope and get confirmation
 
-- Which epics are fully taskified (if any)
-- Which epic is recommended next and why (dependency order)
-- Which features within that epic need taskification
-- Which epics are blocked by the recommended one
+Show the user:
 
-Let the user confirm the recommended scope or override (e.g., select a different epic, or specific features within an epic).
+- The document inventory, with gaps and their consequences
+- The epic/feature table with per-feature status (not started / partial / complete)
+- Recommended scope: one epic at a time, in the index's dependency order, plus which epics it unblocks
+- Estimated bead count for the scope (use the sanity bands in Phase 3)
 
 <HARD-GATE>
-Do NOT proceed to Phase 1 until the user has confirmed the scope.
+Do NOT load feature documents until the user has confirmed the scope.
 
-**Autopilot:** Present the scope recommendation, then proceed immediately.
+**Autopilot:** present the recommendation, then proceed.
 </HARD-GATE>
 
 ---
 
-## Phase 1: Decompose Features into Tasks
+## Phase 1: Load the Plan
 
-Work through each in-scope feature one at a time.
+For the chosen scope, load lazily — only what the current feature needs. Do not read whole documents when an identifier lookup will do.
 
-### Step 1: Load the feature PRD
+**Load once for the epic:**
+- Root PRD sections for the UJs and UCs this epic serves — **journeys are epic-level, not feature-level**, and they are what ledger C is built from
+- Floorplan COMP definitions, BD edges, DF flows, and SL sequences touching this epic's components
+- Artifacts entries whose producing COMP is in this epic
+- Technology entries for the epic's languages, frameworks, test tooling, and CI
 
-Load the feature's PRD from `docs/features/<feature-name>.{org,md}`.
+**Load per feature:**
+- The feature PRD (FRs, ACs, UCs, scope boundaries, feature dependencies)
+- Contract entries (ENT/API/EVT) named by those FRs or by the BD edges the feature crosses — load the contracts index first for identifier lookup, then the specific detail files in `docs/contracts/`
+- TDD sections for the feature's subject: TR statements, algorithms, error handling, trade-offs, deferred improvements, sub-TDD pointers
 
-Read its contents and identify:
-- The FRs assigned to this feature (and their sub-items)
-- The COMP identifiers this feature touches
-- The contract elements referenced (ENT, API, EVT identifiers)
-- Dependencies on other features
+**Cache what you load.** Features in the same epic share contracts, floorplan, and technology context; don't re-read.
 
-### Step 2: Load supporting documents (on-demand)
-
-Load **only** the sections of these documents that the feature PRD references:
-
-| Document | Load when | What to extract |
-|----------|-----------|-----------------|
-| **Contracts index** (`docs/contracts.{org,md}`) | Feature references ENT, API, or EVT identifiers | Load the compact index first for identifier lookup; then load specific detail files from `docs/contracts/` (e.g., `entities.{org,md}` for ENT schemas, `<api-name>.{org,md}` for API operations) as needed |
-| **Floorplan** (`docs/floorplan.{org,md}`) | Feature references COMP, BD, SL, or DF identifiers | Component boundaries, relevant block diagram edges, swim-lane interactions |
-| **Technology choices** (`docs/technology.{org,md}`) | Feature's COMPs have technology decisions | Tech stack for the relevant components |
-
-Do NOT read these documents in full. Read them and extract only the sections relevant to the current feature's identifiers.
-
-### Step 3: Analyze and decompose
-
-Using the feature's FRs, contract elements, COMP boundaries, and tech choices, decompose the feature into implementation tasks.
-
-**Decomposition approach — goal-driven with guardrails:**
-
-Produce tasks that are component-scoped, independently implementable, and expose maximum parallelism. Apply these guardrails:
-
-1. **Single-COMP boundary**: each task's implementation must stay within a single COMP's file/code boundary. This is the primary mechanism for preventing agent conflicts during parallel execution.
-
-2. **Contract element references**: each task must reference which contract elements (ENT schemas, API operations, EVT events) it implements or consumes. This connects the task to the agreed-upon interfaces.
-
-3. **Vertical-slice detection**: if an FR requires thin, uniform changes across multiple COMPs (e.g., adding a data field that threads through API gateway → service → database, or renaming a concept end-to-end), prompt the user:
-   - "FR[N] threads through COMP[X], COMP[Y], COMP[Z] as a [describe the change]. Collapse to a single task?"
-   - If the user confirms, produce one task that spans those COMPs. Label it with all relevant `comp:` labels.
-
-4. **Agent-session sized**: each task should be completable by an agent in a single session. If a task feels too large, split it. If too small, merge with a sibling task within the same COMP.
-
-### Step 4: Produce task specifications
-
-For each task, produce:
-
-- **Title**: action-oriented, descriptive (e.g., "Implement user creation endpoint in API service")
-- **Type**: `task`
-- **Priority**: P0–P4 based on the task's position in the dependency graph and the criticality of the FRs it covers (see priority rules below)
-- **Labels**: `ep:EPX`, `ft:FTY`, `fr:FRZ` (all relevant FRs), `comp:COMPN`
-- **External ref**: the primary FR identifier this task advances
-- **Description**: narrative context — what this task does and why, in the context of the feature
-- **Design**: reference pointers to all relevant documentation sections (identifiers and file paths, not full content):
-  - Feature PRD: which sections, which FRs (e.g., "See FR3.1–FR3.3 in docs/features/user-auth.org")
-  - Floorplan: which COMP, which BD edges, which SL diagrams (e.g., "COMP4 boundary, BD1 edge COMP3→COMP4, SL2 in docs/floorplan.org")
-  - Contracts: which ENT schemas, API operations, EVT events (e.g., "ENT1 in docs/contracts/entities.org, API1.3 in docs/contracts/api1-user-service.org")
-  - Technology choices: which tech stack applies (e.g., "Go + PostgreSQL per docs/technology.org § Backend")
-- **Acceptance criteria**:
-  - The specific FR sub-items this task covers (may be a subset of the full FR)
-  - Contract compliance for elements this task touches (e.g., "API1.3 response matches ENT2 schema")
-  - "All existing tests pass"
-  - "New tests cover all acceptance criteria above"
-- **Dependencies**: which other tasks this blocks or is blocked by, with hard/soft strength
-
-#### Priority rules
-
-Assign priority based on two factors — dependency position and FR criticality:
-
-| Priority | Criteria |
-|----------|----------|
-| P0 (Critical) | On the critical path AND covers FRs tied to core capabilities (CAP items) |
-| P1 (High) | On the critical path OR blocks 2+ other tasks |
-| P2 (Medium) | Not on the critical path but covers primary FRs |
-| P3 (Low) | Supports secondary functionality, no tasks depend on it |
-| P4 (Backlog) | Nice-to-have, could be deferred without blocking the feature |
-
-The feature index's implementation ordering and the feature PRD's dependency graph inform which tasks are on the critical path. Epics and features inherit the highest priority of their child tasks.
-
-### Step 5: Build coverage matrix
-
-After producing all tasks for the feature, build a coverage matrix:
-
-| FR Sub-item | Covered by task(s) |
-|-------------|-------------------|
-| FR3.1 | Task: "Implement user model" |
-| FR3.2 | Task: "Implement user creation endpoint" |
-| FR3.3 | ⚠ NOT COVERED |
-
-**Every FR and FR sub-item assigned to this feature must be covered by at least one task.** If any gaps exist, either add tasks to cover them or flag and discuss with the user.
-
-### Step 6: Determine task dependencies and parallelism groups
-
-#### Determine intra-feature dependencies
-
-Use the contracts and floorplan to identify which tasks depend on which within the feature:
-
-1. **Data dependencies**: if task A implements an ENT schema that task B's API operations reference, B depends on A (hard).
-2. **API dependencies**: if task A implements an API that task B consumes (visible in BD edges and SL diagrams), B depends on A (hard).
-3. **Event dependencies**: if task A emits an EVT that task B handles, B depends on A (soft — can develop in parallel with a stub).
-4. **Ordering from the feature index**: the feature PRD's dependency section and the index's suggested implementation phases provide additional ordering signals. Use these to confirm or supplement contract-derived dependencies.
-
-If two tasks within the same feature touch the same COMP (which should be rare given the single-COMP guardrail), they must be sequenced — one blocks the other.
-
-#### Group into parallelism phases
-
-Group the feature's tasks by what can run in parallel:
-
-- Tasks with no inter-dependencies can run simultaneously
-- Tasks blocked by others must wait
-- Present as ordered phases showing what can be parallelized
+**Record what you could not find.** If an FR names an API that isn't in the contracts doc, or a TDD names a TR with no measurable threshold, that is a hole in the plan. Surface it now — do not paper over it in Phase 3.
 
 ---
 
-## Phase 2: Review & Commit
+## Phase 2: Build the Ledgers **[THINK DEEPLY]**
 
-### Present the feature's task hierarchy
+This is the phase that closes the integration gap. Before decomposing anything, write out three ledgers. They are working artifacts: show them to the user, but do not commit them to the repo.
 
-After decomposing a feature, present to the user:
+### Ledger A: Capture ledger
 
-1. **Task list**: each task with title, COMP scope, FR coverage, dependencies
-2. **Dependency graph**: which tasks block which (with hard/soft typing)
-3. **Parallelism groups**: which tasks can run simultaneously
-4. **Coverage matrix**: FR sub-items → tasks, with gaps flagged
+One row per identifier in scope. This ledger enforces invariant #1 — nothing lost.
 
-### Offer commit checkpoint
+| ID | Kind | Source | Statement (abbreviated) | Disposition |
+|----|------|--------|------------------------|-------------|
+| FR-12.1 | requirement | features/auth.org | "System MUST validate credentials against…" | → beads |
+| FR-12.2 | requirement | features/auth.org | "…MUST issue a signed session token" | → beads |
+| AC-4 | acceptance | features/auth.org | "Given an expired token, when…, then 401" | → verify bead |
+| TR-7 | tech req | tdd/auth.org | "Token validation MUST complete in <5ms p99" | → verify-runtime bead |
+| ENT-3 | entity | contracts/entities.org | Session {id, user_id, expires_at} | → migration + fixture |
+| API-9 | operation | contracts/api-auth.org | POST /sessions | → provider + consumer + seam |
+| EVT-2 | event | contracts/events.org | session.revoked | → publisher + subscriber + seam |
+| NG-2 | non-goal | prd.org | "No SSO in v1" | out of scope — recorded |
 
-After the user reviews and confirms the feature's tasks, prompt:
+Enumerate **every** identifier. Multi-part FRs get one row per sub-item: an FR that says "MUST validate, persist, and emit" is three rows, because it is three pieces of work and three things that can be missed.
 
-"Commit these **N tasks** for **FTY — [feature name]** to bd now?
-(**M features** remaining in EPX, **K tasks** generated so far across **L features**)"
+Dispositions must be one of:
 
-The user can:
-- **Commit now** — tasks are written to `bd` immediately (proceed to Phase 3 for this batch)
-- **Defer** — tasks are held; continue to the next feature
-- **Adjust** — modify tasks before committing or deferring
+| Disposition | Meaning |
+|-------------|---------|
+| `→ beads` | Becomes implementation work |
+| `→ verify bead` | Becomes verification work |
+| `out of scope — <reason>` | Deliberately excluded; reason recorded on the epic bead |
+| `→ spike` | An unknown blocks decomposition |
+| `→ decision` | The plan left a choice open |
+| `→ deferred` | A TDD deferred improvement, with its trigger condition |
 
-### Repeat for each feature
+A row with no disposition is an unfinished ledger. Do not proceed with blanks.
 
-Move to the next in-scope feature and repeat from Phase 1, Step 1.
+### Ledger B: Seam ledger
 
-After reviewing all features in the epic, if there are uncommitted tasks, prompt one final time:
+**This is the most important table in this skill.** A seam is any place where two things must meet. Features fail to work not because components are wrong, but because seams were never made live and never tested.
 
-"**N tasks** across **M features** are ready to commit for **EPX — [epic name]**. Commit all now?"
+For every seam, answer two questions:
 
-Prompt the user: "Would you like to review the tasks before I write them to bd, or should I go ahead and write?"
+> **Which bead makes this seam live?** — real code on both sides, running through real config, no placeholder.
+>
+> **Which bead proves this seam?** — an automated test that exercises both sides with no mocked counterpart *at the seam itself*.
 
-If the user wants to review, present them and wait for approval. If they choose to skip, write directly. **Autopilot:** skip review and write directly.
+**Enumerate seams from every one of these sources.** Walk the list; do not sample it.
 
----
+| Seam source | How to enumerate |
+|-------------|------------------|
+| **BD edges** (floorplan) | Every edge between two in-scope COMPs |
+| **API operations** (contracts) | Each operation twice: the provider side, and each consumer side separately |
+| **EVT events** (contracts) | Each event: the publisher side, and each subscriber separately |
+| **DF crossings** (floorplan) | Every point where a data flow crosses a COMP boundary |
+| **SL sequences** (floorplan) | Every message in a swim lane, plus the ordering constraint itself |
+| **Persisted ENTs** (contracts) | Schema ↔ migration ↔ mapper/ORM ↔ query path |
+| **External dependencies** (technology) | Every third-party service, SDK, or system API |
+| **Process / module boundaries** | IPC, FFI, worker queues, dynamic loading, plugin registries |
+| **Artifact boundaries** (artifacts) | Build output ↔ packaging ↔ installation ↔ runtime environment ↔ launch mechanism |
+| **Config & secret boundaries** | Every config value: where it is defined, defaulted, validated, and consumed |
+| **Auth / identity boundaries** | Every place a principal crosses a trust boundary |
+| **UI ↔ backend boundaries** | Every view that reads or writes server state |
 
-## Phase 3: Write to `bd`
+Format:
 
-When the user confirms a commit (either per-feature or per-epic):
+| Seam | Sides | Live via | Proven by | Notes |
+|------|-------|----------|-----------|-------|
+| API-9 provider | api-svc → session handler | `impl-api9-handler` | `verify-seam-api9` | |
+| API-9 consumer | web-ui → api-svc | `wiring-web-apiclient` | `verify-seam-api9` | client needs base-URL config |
+| EVT-2 publish | auth-svc → bus | `impl-evt2-publish` | `verify-seam-evt2` | |
+| EVT-2 subscribe | notifier ← bus | `wiring-notifier-sub` | `verify-seam-evt2` | subscriber registration is the usual gap |
+| ENT-3 persist | session store → db | `ops-migrate-session` | `verify-seam-ent3` | needs a fixture in the harness bead |
+| BD-4 | cli → auth-svc | `wiring-cli-authclient` | `verify-journey-uj1` | |
+| CFG auth.token_ttl | config → validator | `ops-config-schema` | `verify-seam-cfg-ttl` | default must be documented |
+| ART-2 install | build → user machine | `impl-art2-package` | `verify-artifact-art2` | signing deferred to v2 (`kind:deferred`) |
 
-### Create the epic issue (if needed)
+**A seam proven only by a test that mocks the other side is not proven.** Write the real-counterpart test as the proving bead. If a real counterpart is genuinely unavailable, record it in the stub ledger (Phase 3) with a replacing bead — never leave the mock as the answer.
 
-If no epic-type issue exists in `bd` for this EP:
+<HARD-GATE>Do not proceed past ledger B with any blank in the "Live via" or "Proven by" column. A blank is a hole in the plan; fill it with a bead, a spike, or an explicit out-of-scope note.</HARD-GATE>
 
-```bash
-bd create --type epic --title "EPX: [epic name]" \
-  --labels "proj:[project-slug],ep:EPX,slug:[epic-slug]" \
-  --priority [P0-P4] \
-  --description "[epic description from feature index]" \
-  --silent
-```
+### Ledger C: Journey & artifact ledger
 
-**Slug generation**: derive `[epic-slug]` by slugifying the epic name — lowercase, hyphens for spaces, no special characters. Shorten long titles to keep slugs concise (e.g., "User Authentication and Authorization System" → `user-auth`, "Real-time Notification Infrastructure" → `realtime-notifs`).
+Seams prove that pieces connect. Journeys prove the product works. Artifacts prove it ships.
 
-Set the epic's priority to the highest priority of its child tasks.
+| Item | Type | Path through the system | Demonstrated by | Runnable output |
+|------|------|------------------------|-----------------|-----------------|
+| UJ-1 | journey | cli → auth-svc → db → cli | `verify-journey-uj1` | `make demo-login` |
+| UC-3 | use case | web-ui → api-svc → bus → notifier | `verify-journey-uc3` | integration suite |
+| ART-1 | artifact | build → `dist/app` | `verify-artifact-art1` | `make build && ./dist/app --version` |
+| ART-2 | artifact | build → `.deb` → installed systemd service | `verify-artifact-art2` | container install smoke test |
 
-Capture the issue ID for parent-child linking.
+Every in-scope UJ and UC needs a row. Every ART whose producing COMP is in scope needs a row.
 
-### Create feature issues (if needed)
+**If ledger C is empty, the epic will produce nothing a human can run.** Say so plainly before continuing, and recommend running the `artifacts` skill.
 
-For each feature being committed that doesn't already have a feature-type issue:
+### Present the ledgers
 
-```bash
-bd create --type feature --title "FTY: [feature name]" \
-  --parent [epic-issue-id] \
-  --labels "proj:[project-slug],ep:EPX,ft:FTY,slug:[feature-slug]" \
-  --priority [P0-P4] \
-  --description "[feature description from feature index]" \
-  --silent
-```
+<HARD-GATE>
+Show all three ledgers to the user before decomposing. Call out explicitly: any ledger A row without a disposition, any ledger B blank, any UJ or ART with no demonstration.
 
-**Slug generation**: derive `[feature-slug]` by slugifying the feature name — lowercase, hyphens for spaces, no special characters. Shorten long titles to keep slugs concise (e.g., "OAuth2 Provider Integration" → `oauth2-provider`, "Password Reset via Email" → `password-reset`).
-
-Set the feature's priority to the highest priority of its child tasks.
-
-Capture the issue ID for parent-child linking.
-
-### Create task issues
-
-For each task, create the issue and then set fields that `bd create` doesn't support directly:
-
-```bash
-# Step 1: Create the issue (captures the issue ID via --silent)
-bd create --type task --title "[task title]" \
-  --parent [feature-issue-id] \
-  --labels "proj:[project-slug],ep:EPX,ft:FTY,fr:FRZ,comp:COMPN" \
-  --external-ref "FRZ" \
-  --priority [P0-P4] \
-  --description "[task description]" \
-  --silent
-
-# Step 2: Set design and acceptance criteria (not available on bd create)
-bd update [task-issue-id] --design "[reference pointers]"
-bd update [task-issue-id] --acceptance-criteria "[acceptance criteria]"
-```
-
-Capture each task's issue ID for dependency linking.
-
-### Add dependencies between tasks
-
-For each dependency relationship between tasks:
-
-```bash
-bd dep add [blocked-task-id] [blocking-task-id] \
-  --type blocks \
-  --metadata '{"strength": "hard"}'
-```
-
-Or for soft dependencies:
-
-```bash
-bd dep add [blocked-task-id] [blocking-task-id] \
-  --type blocks \
-  --metadata '{"strength": "soft"}'
-```
-
-### Add cross-feature dependencies
-
-If a task depends on work in a different feature (from the feature-level dependency graph), add a `blocks` dependency. To find the right target:
-
-1. If the other feature has already been taskified, find the specific task that produces the interface this task consumes — match on shared contract elements (ENT/API/EVT identifiers) in the `fr:` labels or design field.
-2. If no specific task can be identified, or the other feature hasn't been taskified yet, **fall back to the feature-level issue itself** as the dependency target. This ensures the dependency is tracked even before the blocking feature's tasks exist.
-
-```bash
-bd dep add [this-task-id] [other-feature-issue-id] \
-  --type blocks \
-  --metadata '{"strength": "hard", "reason": "requires FT2 API1.3 interface"}'
-```
-
-### Confirm success
-
-After writing all issues, report:
-- Number of issues created (epics, features, tasks)
-- Number of dependencies added
-- Any issues encountered
+**Autopilot:** present them and continue — but still enumerate the blanks in your message, and create `kind:spike` or `kind:decision` beads for them rather than silently filling them in.
+</HARD-GATE>
 
 ---
 
-## Phase 4: Validate
+## Phase 3: Decompose Into Bead Layers **[THINK DEEPLY]**
 
-After all tasks for the epic are committed, offer:
+### The bead kind taxonomy
 
-"All tasks for **EPX — [epic name]** are committed. Would you like me to run `bv --robot-plan` to validate the dependency graph?"
+Every bead carries exactly one `kind:*` label. This is beadify's namespace; `test:*` belongs to test-plan (see "Interaction with test-plan").
 
-If the user confirms, run:
+| Label | bd type | Purpose | Single-COMP rule |
+|-------|---------|---------|------------------|
+| `kind:spike` | `spike` | Resolve an unknown that blocks design | n/a |
+| `kind:decision` | `decision` | Record a choice the plan left open | n/a |
+| `kind:scaffold` | `chore` | Create module/package/directory structure | **scoped** |
+| `kind:contract-types` | `task` | Generate or hand-write types from ENT/API/EVT | **scoped** |
+| `kind:harness` | `chore` | Test infrastructure: runner, fixtures, seed data, CI job | **exempt** |
+| `kind:skeleton` | `task` | Walking skeleton — the thinnest end-to-end path | **exempt** |
+| `kind:impl` | `task` | Real behavior inside one component | **scoped** |
+| `kind:wiring` | `task` | Make a seam live | **exempt** |
+| `kind:verify-seam` | `task` | Prove one seam, both sides real | **exempt** |
+| `kind:verify-journey` | `task` | Prove a UJ or UC end to end | **exempt** |
+| `kind:verify-artifact` | `task` | Prove an ART builds, installs, and runs | **exempt** |
+| `kind:verify-runtime` | `task` | Prove a non-functional TR (performance, concurrency, recovery) | **exempt** |
+| `kind:ops` | `task` | Migrations, config, secrets, observability, deploy | **exempt** |
+| `kind:gate` | `task` / `milestone` | Definition-of-done checkpoint for a FT or EP | **exempt** |
+| `kind:deferred` | `task` | Deferred improvement, with its trigger condition | n/a |
+| `kind:docs` | `chore` | README, runbook, or ADR the plan calls for | **scoped** |
 
-```bash
-bv --robot-plan --label "ep:EPX" --format json
+### The single-COMP rule, corrected
+
+Implementation beads stay inside one component so agents don't collide on files. **But integration work is inherently cross-component, and forbidding it is precisely why plans produce unwired code.**
+
+- **Scoped** kinds touch files in one COMP only. Label with a single `comp:<COMP-id>`.
+- **Exempt** kinds may touch multiple COMPs by design. Label with **every** `comp:<COMP-id>` they touch, so the overlap is visible even though it is permitted.
+
+Exempt beads *are* the seams. Sequence them so two exempt beads touching the same file never run concurrently (Phase 5).
+
+### Walking skeleton first
+
+For each feature — or for the epic, when a single feature is too small to stand alone:
+
+> The **first** substantial bead after scaffolding is a walking skeleton: the thinnest possible path that runs end to end through every COMP the feature touches, returning a hardcoded or trivial result.
+
+The skeleton exists to make the seams live before any real logic lands. Once it runs, every later impl bead has somewhere real to plug into, and every wiring bead extends an existing composition root rather than inventing one.
+
+A skeleton bead's acceptance criteria always include a command a human can run and an observable output.
+
+### The wiring checklist
+
+For each feature, walk this list explicitly. Every item that applies becomes a `kind:wiring` bead (or a named line item inside one). Record in the feature bead's comment which items you determined do **not** apply, and why — that record is what makes the omission reviewable instead of accidental.
+
+1. **Composition root / DI registration** — the new type is constructed and injected where it is needed
+2. **Route / handler / endpoint registration** — the handler is reachable from the server's route table
+3. **Event subscriber registration** — subscribers are registered; topics, queues, and streams exist
+4. **Migration registration and run order** — the migration is in the migration list, in the right position
+5. **Config schema, defaults, and plumbing** — every new config value is declared, defaulted, validated, and threaded to every consumer
+6. **Secret / credential provisioning** — where the secret comes from in dev, CI, and production
+7. **Client construction** — for each API consumer: base URL, timeouts, retries, auth, error mapping
+8. **Serialization registration** — codecs, custom type handlers, schema-registry entries
+9. **Feature exposure** — CLI subcommand, menu item, nav entry, exported symbol, public API surface
+10. **Startup / shutdown ordering and health checks** — the component starts in the right order and reports readiness
+11. **Cross-boundary glue** — IPC channel, FFI binding, worker registration, plugin manifest entry
+12. **Error mapping at the boundary** — domain error → wire error → user-visible message
+13. **Build wiring** — new module added to the build graph, packaging manifest, entry point, dependency declaration
+
+### The harness checklist
+
+Test infrastructure is **beadify's job**, not test-plan's. test-plan specifies *what* to test; without a harness there is nothing for the tests to run in. For each feature — or shared across the epic, since one harness bead can serve many features — walk this list:
+
+1. **Test runner configuration** for each level the feature needs
+2. **Real dependency provisioning** — containers, in-memory servers, temp dirs, local brokers
+3. **Fixtures / factories** for every persisted ENT the feature touches
+4. **Seed data** and migrate-on-test-start
+5. **Determinism controls** — injectable clock, ID generator, seeded randomness
+6. **Identity doubles at the edge only** — test auth may be faked at the outermost boundary, never at an internal seam
+7. **Network policy** — loopback permitted, external calls blocked and loudly failing
+8. **Contract assertion helpers** — reusable assertions for the wire shapes in ENT/API/EVT
+9. **Teardown and isolation** — tests do not leak state into each other
+10. **CI job** — each test level runs in CI, with logs, coverage, and traces retained as job artifacts
+11. **One-command local runner**, documented in the harness bead's acceptance criteria, so the next agent can run the suite without archaeology
+
+Harness beads are `kind:harness`, type `chore`, and they **block** every verify bead that depends on them.
+
+### Verification beads
+
+- One `kind:verify-seam` bead per ledger B row (or per tightly-coupled pair of rows, e.g. an operation's provider and consumer sides proven by the same test).
+- One `kind:verify-journey` bead per ledger C journey or use case.
+- One `kind:verify-artifact` bead per ledger C artifact.
+- One `kind:verify-runtime` bead per non-functional TR, with the TR's threshold inlined verbatim and the measurement method named.
+
+**The no-mocks-at-the-seam rule:** a verify-seam bead's acceptance criteria must state that both sides run real code. If the test mocks the counterpart, it verifies nothing about the boundary. The only acceptable doubles are the outermost external service — with a separate contract test against the real one — and the clock.
+
+Verify beads are exempt from the single-COMP rule and are blocked by:
+- the impl beads for each side,
+- the wiring beads that make the seam live,
+- the harness bead that provides the environment.
+
+### The stub ledger
+
+Sometimes a real counterpart genuinely isn't available yet (a component in a later epic, a vendor sandbox that doesn't exist). Then:
+
+1. Label the bead that introduces the placeholder `stub:<what-is-stubbed>`.
+2. Create the bead that replaces it with the real thing — even if it lands in a later epic.
+3. Link them with a `related` edge, and name the stub explicitly in the replacing bead's description.
+4. Record the pair in the epic's Background & Intent comment.
+
+A stub with no replacing bead is a permanent hole. Validation rule 12 catches it.
+
+### Gate beads
+
+Every feature gets exactly one `kind:gate` bead. Every epic gets exactly one.
+
+- Type `task` for feature gates, `milestone` for epic gates.
+- Priority equal to the highest priority among its siblings.
+- Blocked by **every** other bead in its feature — or, for the epic gate, by every feature gate.
+- Acceptance criteria: run the demonstration command, observe the stated output, and **post a comment on the gate bead containing the evidence** (command, output, timestamp).
+
+The epic gate's acceptance criteria are the **runnability checklist**:
+
+1. The build command produces every ART the epic needs
+2. There is a documented command that starts the system locally
+3. There is a documented command that runs each test level, and it passes
+4. Every config value has a default or a documented source
+5. Every migration runs from empty on a fresh environment
+6. At least one UJ is demonstrable end to end by a human following written steps
+7. Every failure mode named in the TDD has an observable signal (log, metric, or error message)
+
+### Spikes, decisions, and deferrals
+
+- **Spike** (`kind:spike`, type `spike`): an unknown that blocks design. Acceptance criteria = the question answered and written down, plus a follow-up bead created. Spikes `blocks` the beads that depend on the answer. Time-box in the estimate.
+- **Decision** (`kind:decision`, type `decision`): the plan left a choice open. Acceptance criteria = the choice made, recorded (an ADR or a TDD update), and the affected beads updated. Never let a decision hide inside an impl bead.
+- **Deferred** (`kind:deferred`, type `task`, priority 4): a TDD Deferred Improvement. Put the **trigger condition verbatim** in the description ("when p99 exceeds 200 ms", "when tenant count passes 50"). These beads are what keep the plan's future-self knowledge from evaporating.
+
+### Granularity
+
+- **Subtask**: 60–90 minutes of focused work.
+- **Task**: one working session, ≤ ~240 minutes. If larger, make it a parent task with subtasks.
+- Split on natural boundaries: one seam, one operation, one entity, one migration, one checklist item.
+- Do not split so finely that a bead has no independently verifiable outcome.
+
+### Sanity bands
+
+Use these to catch collapsed decomposition *before* writing anything:
+
+| Feature shape | Expected bead count |
+|---------------|--------------------|
+| 3–6 FRs across 2–4 COMPs, 2–4 seams | **15–40 beads** |
+| 1–2 FRs, single COMP, 1 seam | 6–12 beads |
+| 8+ FRs across 5+ COMPs | 40–80 beads — consider splitting the feature |
+
+**If a feature of the first shape yields fewer than 10 beads, you collapsed the wiring or the verification.** Go back to ledger B and count the rows again.
+
+A healthy feature's bead mix is roughly 35–45% impl, 15–20% wiring, 20–30% verification, 10% harness/ops/scaffold, plus one gate. **A feature that is 90% impl beads is the exact failure this skill exists to prevent.** Report the count and the mix alongside the band when you present the feature, and explain any number below the band.
+
+### Priority rules
+
+| Priority | Meaning |
+|----------|---------|
+| 0 | Blocks everything; on the critical path to the walking skeleton |
+| 1 | Core FR implementation tied to a CAP; required for the feature gate |
+| 2 | Important but not gate-blocking |
+| 3 | Secondary functionality; nothing depends on it |
+| 4 | Deferred improvements, optional polish |
+
+**Wiring and verification beads inherit the maximum priority of the work they complete — never lower.** A P1 impl bead whose wiring is P3 yields a P1 feature that doesn't run. This is the most common priority error; apply the rule mechanically.
+
+Gate beads take the maximum priority of their siblings. Features and epics take the maximum priority of their children.
+
+---
+
+## Phase 4: Write Bead Content
+
+Beads must be self-documenting. An agent picking one up six weeks from now, with no memory of the plan and no planning documents in its context, must be able to execute it correctly.
+
+### The orphan-context test
+
+Before finalizing each bead, ask: **if this bead were the only thing an agent could read, would it do the right work?**
+
+It must know: what to build, why it matters, where the files go, what interfaces to code against, what "done" means, how to verify it, and what mistakes to avoid.
+
+### The balance rule
+
+> **Inline what changes the implementation. Point to what merely explains it.**
+
+Inline: the exact schema, the operation signature, the error codes, the TR threshold, the file paths, the config key names, the library and version.
+
+Point to: the PRD's market rationale, the floorplan's full diagram, the TDD's extended alternatives discussion.
+
+A bead that says "implement API-9 per contracts" fails the orphan test. A bead that pastes the entire contracts document fails on noise. Inline the operation; cite the document for the surrounding context.
+
+### Field map
+
+`bd` beads have these fields. Use all of them.
+
+#### `title`
+
+Imperative and specific, ≤ 80 characters. "Register session.revoked subscriber in notifier composition root" — not "Notifier work".
+
+#### `description` — what and why
+
+```markdown
+## What
+<One paragraph: the concrete change, in terms a stranger to the plan understands.>
+
+## Why it matters
+<What breaks or is missing without this. For wiring beads, name the code that
+stays unreachable. For verify beads, name the failure mode this catches.>
+
+## Scope boundaries
+<What is explicitly NOT in this bead, and which bead covers it instead.>
+
+## Traceability
+Implements: FR-12.2, TR-7
+Contracts: API-9, ENT-3
+Floorplan: COMP-3, BD-4
+Serves: CAP-2 → UJ-1
 ```
 
-Report any issues found:
-- Dependency cycles
-- Orphaned tasks (no dependencies and not in the first parallelism group)
-- Missing coverage
+The `Serves:` line is the through-line to the product goal. It is what lets a future agent judge a trade-off correctly when the bead's instructions don't cover the case it hit.
 
-### Suggest next steps
+#### `design` — how
 
-After validation (or if the user skips it):
+```markdown
+## Approach
+<The technical approach: algorithm, data structure, control flow. Lift the
+relevant TDD content; do not merely cite it.>
 
-- "Your tasks are in bd. Next steps you might consider:"
-  - Run `bv --robot-priority` to see recommended task ordering
-  - Use `bd ready` to find tasks with no blockers — these can start immediately
-  - Assign tasks to agents with `bd update [id] --assignee [agent]`
-  - Run this skill again for the next epic in dependency order
-  - Use `bv` TUI for an interactive view of the task graph
+## Interfaces
+<Inline the exact signatures, schemas, and wire shapes from the contracts.>
+
+## Files & locations
+<Concrete paths. Which files are created, which are modified.>
+
+## Technology constraints
+<From docs/technology: language, framework, library and version, plus any
+idioms the project has settled on.>
+
+## Wiring points
+<For anything that needs registration: exactly where it must be registered,
+and by which bead if not this one.>
+```
+
+#### `acceptance_criteria` — what done means
+
+````markdown
+- [ ] <Observable, checkable outcome>
+- [ ] <Observable, checkable outcome>
+
+## Verification
+```bash
+<the exact command(s) that prove this bead is done>
+```
+
+## Evidence
+Post a comment on this bead with the command output.
+````
+
+Every leaf bead needs at least one **runnable** verification command. "Code review passes" is not acceptance criteria. For verify beads, the command is the test invocation, and the criteria state explicitly that no counterpart is mocked at the seam.
+
+#### `notes` — the future-self field
+
+```markdown
+## Considerations
+<Edge cases, failure modes, performance characteristics, security implications.>
+
+## Alternatives rejected
+<What else was considered and why it lost — from the TDD's trade-offs section.
+This is what stops a future agent from "fixing" a deliberate choice.>
+
+## Gotchas
+<Ordering constraints, surprising behavior, sharp edges in the libraries,
+platform differences.>
+
+## Deferred
+<Improvements consciously out of scope, with their trigger conditions.>
+
+## Open questions
+<What is still unresolved, and which bead resolves it.>
+```
+
+#### `metadata` — structured traceability
+
+```json
+{
+  "frs": ["FR-12.2"],
+  "acs": ["AC-4"],
+  "trs": ["TR-7"],
+  "entities": ["ENT-3"],
+  "apis": ["API-9"],
+  "events": ["EVT-2"],
+  "comps": ["COMP-3"],
+  "edges": ["BD-4"],
+  "flows": ["DF-2"],
+  "sequences": ["SL-1"],
+  "journeys": ["UJ-1"],
+  "artifacts": ["ART-2"],
+  "seam": "API-9 consumer: web-ui → api-svc",
+  "kind": "wiring"
+}
+```
+
+Omit empty keys. The Phase 8 validation rules query against this, so it must be accurate: every ledger A identifier must appear in some bead's metadata.
+
+#### `external_ref`
+
+The primary requirement identifier (e.g. `FR-12.2`), for quick scanning.
+
+#### `estimate`
+
+Minutes. Required on every leaf bead — the granularity bands are checked against it.
+
+#### `labels`
+
+`proj:<slug>`, `ep:<EP-id>`, `ft:<FT-id>`, `kind:<kind>`, one `comp:<COMP-id>` per component touched, plus `stub:<what>` where applicable. Also keep `fr:<FR-id>` labels for the FRs the bead advances — they make `bd query` filtering by requirement possible.
+
+**Never `test:*`.**
+
+### Required comments
+
+Fields describe the work. Comments carry the narrative. Every bead gets at least one comment.
+
+#### Comment 1: Background & Intent (mandatory, every bead)
+
+```markdown
+## Background & Intent
+
+**Where this comes from.** <The chain: product goal → capability → requirement →
+this bead. Written as prose a human would say out loud.>
+
+**What we're actually trying to achieve.** <The outcome, not the output: what
+the user or the system can do afterward that it couldn't before.>
+
+**How it serves the larger goal.** <Why this exists in the architecture at all.
+For wiring and verification beads especially: what class of bug it prevents.>
+
+**Thinking that led here.** <The reasoning behind the approach: what we knew,
+what we assumed, what we were worried about.>
+
+**What we considered and didn't do.** <Alternatives, and why they lost.>
+
+**What future-you should know.** <The thing that will be non-obvious in six
+weeks: sharp edges, coupling that isn't visible in the code, a decision that
+looks arbitrary but isn't.>
+```
+
+This is where the "future self" requirement is satisfied. Do not write it generically — **a Background comment that would apply equally to any bead in the feature is a wasted comment.** It must name specifics: this seam, this schema, this threshold, this trade-off.
+
+#### Comment 2: Sequencing rationale (where the ordering isn't obvious)
+
+Explain why this bead must follow that one, what breaks if they're reordered, and what could be parallelized but deliberately isn't.
+
+Because `bd` permits only one edge type per pair of beads, this comment is also where **soft** dependencies live: "should follow `abc-123` for consistency, but not blocking."
+
+#### Comment 3: Feature and epic context
+
+On each **feature** bead: the feature's purpose, its FR set, its seam inventory, which wiring-checklist items were determined not to apply and why, and the demonstration command.
+
+On each **epic** bead: the epic's role in the product, the runnability checklist, the document gaps recorded in Phase 0, the stub ledger, and the full seam ledger as a markdown table. **The epic bead is the plan's memory** — someone should be able to read it and understand the whole shape of the work.
+
+---
+
+## Phase 5: Wire the Graph **[THINK DEEPLY]**
+
+### Dependency types
+
+`bd` supports: `blocks`, `tracks`, `related`, `parent-child`, `discovered-from`, `until`, `caused-by`, `validates`, `relates-to`, `supersedes`.
+
+**There is no dependency-strength flag.** Encode strength in the type:
+
+| Intent | Mechanism | Effect |
+|--------|-----------|--------|
+| Hard — cannot start until done | `--type blocks` | Excluded from `bd ready` |
+| Soft — prefer this order | `--type related` | Advisory only; explain in a comment |
+| Test proves implementation | `--type validates` | Advisory; documents the pairing |
+| Parent / child | the node's `parent` field | Hierarchy, not an edge |
+
+<HARD-GATE>
+Only **one** edge may exist between any pair of beads. `bd dep add` fails if an edge already exists with a different type ("dependency already exists with type X"). Choose the strongest applicable type and put the rest in a comment.
+</HARD-GATE>
+
+In practice: verify beads take `blocks` edges from their impl, wiring, and harness prerequisites — they genuinely cannot run before those land — and `validates` is reserved for pairs that have no `blocks` relationship.
+
+### Canonical dependency skeleton
+
+Within a feature, the spine runs:
+
+```
+scaffold ──▶ contract-types ──▶ skeleton ──▶ impl ──▶ wiring ──▶ verify-seam ──▶ gate
+                     │             │          │        │             │
+   harness ──────────┴─────────────┴──────────┴────────┴─────────────┘
+      ▲
+    ops (migrations, config, secrets)
+```
+
+- `scaffold` blocks everything in its component.
+- `contract-types` blocks any bead that codes against those types.
+- `skeleton` blocks the impl beads whose seams it establishes.
+- `harness` blocks every `verify-*` bead.
+- `ops` (migration, config) blocks the impl and verify beads that need the schema or the config value.
+- `wiring` is blocked by the impl beads on both sides of its seam.
+- `verify-seam` is blocked by both sides' impl beads and by the wiring bead.
+- `verify-journey` is blocked by every `verify-seam` along its path.
+- `verify-artifact` is blocked by the build and packaging beads.
+- The feature `gate` is blocked by everything else in the feature.
+- The epic `gate` is blocked by every feature gate.
+
+### Cross-feature dependencies
+
+Use the feature index's dependency graph. Where feature B depends on feature A:
+
+- B needs A's **contract types** → A's `contract-types` bead blocks B's beads that use them.
+- B needs A's **runtime behavior** → A's feature gate blocks B's relevant impl beads.
+- B needs A's **decision** only → A's `decision` bead blocks B.
+
+Prefer the narrowest true edge. `A-gate blocks B-scaffold` serializes two features that could have overlapped.
+
+If feature A hasn't been beadified yet, fall back to A's feature-level bead as the dependency target so the edge is tracked, and note in a comment that it should be narrowed once A is decomposed.
+
+### Parallelism analysis
+
+Group beads into waves and present them:
+
+```
+Wave 1 (parallel, 4): scaffold-api, scaffold-web, harness-integration, ops-migrate-session
+Wave 2 (parallel, 3): contract-types-api, contract-types-web, ops-config-schema
+Wave 3 (serial):      skeleton-login-path
+Wave 4 (parallel, 5): impl-* beads
+Wave 5 (serial, 2):   wiring-* beads that touch the composition root
+Wave 6 (parallel, 4): verify-seam-* beads
+Wave 7 (serial):      verify-journey-uj1, then feature gate
+```
+
+**Check exempt beads for file collisions.** Two `kind:wiring` beads that both edit the composition root cannot run concurrently, even though nothing logically blocks them. Add a `blocks` edge between them and explain it in a sequencing comment. This is the most common source of false parallelism — and it is invisible unless you look for it, because both beads are individually correct.
+
+### Verify the graph before writing
+
+- No cycles (you'll confirm with `bd dep cycles` after the write, but reason about it now).
+- Every bead is reachable from its feature gate by walking `blocks` edges backward.
+- The wave-1 ready set is non-empty.
+- No bead is blocked by something in a later epic — unless that is intentional, in which case say so.
+
+---
+
+## Phase 6: Review & Commit
+
+Present each feature to the user as:
+
+1. **Feature summary** — FR set, COMP set, seam count, bead count and kind mix against the sanity band
+2. **The bead table** — key, title, kind, type, priority, comp(s), estimate, blocked-by
+3. **Coverage confirmation** — every ledger A row's disposition, every ledger B row's live/proven beads, every ledger C row's demonstration
+4. **The waves** — the parallelism plan, with any deliberate serialization explained
+5. **What's deliberately missing** — out-of-scope items, stubs, deferrals, open questions
+
+Offer commit checkpoints: after each feature, or after the whole epic. **Default to per-feature** — it limits blast radius if the user wants changes.
+
+<HARD-GATE>
+Do NOT write to `bd` until the user confirms.
+
+**Autopilot:** present and proceed.
+</HARD-GATE>
+
+---
+
+## Phase 7: Write to `bd`
+
+### Preferred path: atomic graph plan
+
+`bd create --graph` writes the whole graph in one transaction and returns a key→id map. Use it.
+
+Write the plan to the **scratch directory** — never into the repository.
+
+```json
+{
+  "nodes": [
+    {
+      "key": "ep-auth",
+      "title": "EP-1: Authentication",
+      "type": "epic",
+      "priority": 1,
+      "labels": ["proj:myapp", "ep:EP-1"],
+      "description": "## What\n…"
+    },
+    {
+      "key": "ft-session",
+      "title": "FT-3: Session issuance",
+      "type": "feature",
+      "parent": "ep-auth",
+      "priority": 1,
+      "labels": ["proj:myapp", "ep:EP-1", "ft:FT-3"],
+      "description": "## What\n…"
+    },
+    {
+      "key": "impl-api9",
+      "title": "Implement POST /sessions handler",
+      "type": "task",
+      "parent": "ft-session",
+      "priority": 1,
+      "labels": ["proj:myapp", "ep:EP-1", "ft:FT-3", "kind:impl", "comp:COMP-3", "fr:FR-12.2"],
+      "description": "## What\n…\n\n## Why it matters\n…",
+      "design": "## Approach\n…",
+      "acceptance_criteria": "- [ ] …\n\n## Verification\n…",
+      "notes": "## Considerations\n…",
+      "external_ref": "FR-12.2",
+      "estimate": 120,
+      "metadata": { "frs": ["FR-12.2"], "apis": ["API-9"], "kind": "impl" },
+      "deps": [{ "target": "contract-types-api", "type": "blocks" }]
+    }
+  ],
+  "edges": [
+    { "from_key": "verify-seam-api9", "to_key": "impl-api9", "type": "blocks" }
+  ]
+}
+```
+
+Schema notes — verified against `bd`; do not improvise:
+
+- Node identity is **`key`**, not `id`.
+- The graph-plan field is **`acceptance_criteria`** (snake_case); the `bd create` flag is `--acceptance`.
+- Dependencies inside a node use `deps: [{ "target": "<key>", "type": "<type>" }]` — the field is **`target`**.
+- Top-level edges use **`from_key`/`to_key`** (or `from_id`/`to_id` to reference beads that already exist).
+- Hierarchy is the node's **`parent`** field, not an edge.
+- Nodes accept: `key`, `title`, `type`, `priority`, `labels`, `description`, `design`, `acceptance_criteria`, `notes`, `external_ref`, `estimate`, `metadata`, `parent`, `deps`.
+- Nodes do **not** accept comments — comments are a separate step.
+- Graph-plan nodes do **not** inherit labels from their parent. Put every label on every node. (This differs from `bd create`, which inherits by default unless `--no-inherit-labels` is passed.)
+
+Write it:
+
+```bash
+bd create --graph plan.json --json > created.json
+jq -r '.ids | to_entries[] | "\(.key)\t\(.value)"' created.json > ids.tsv
+```
+
+`created.json` has the shape `{"ids":{"ep-auth":"abc-1k2", …},"schema_version":1}`.
+
+### Add the comments
+
+Write each bead's comments to `comments/<key>.md` in the scratch directory, then:
+
+```bash
+while IFS=$'\t' read -r key id; do
+  [ -f "comments/$key.md" ] && bd comment "$id" --file "comments/$key.md"
+done < ids.tsv
+```
+
+Use `--file`; do not pass long markdown through shell arguments.
+
+### Fallback path: per-bead creation
+
+If `--graph` is unavailable in the installed `bd`, create beads individually in dependency order:
+
+```bash
+bd create "Implement POST /sessions handler" \
+  -t task -p 1 \
+  --parent "$FT_ID" \
+  -l proj:myapp,ep:EP-1,ft:FT-3,kind:impl,comp:COMP-3,fr:FR-12.2 \
+  --body-file desc.md \
+  --design-file design.md \
+  --acceptance "$(cat accept.md)" \
+  --notes "$(cat notes.md)" \
+  --metadata @metadata.json \
+  --external-ref FR-12.2 \
+  --estimate 120 \
+  --no-inherit-labels \
+  --silent
+```
+
+`bd create` supports `--design`, `--acceptance`, and `--notes` directly — there is no need for a create-then-update two-step. Prefer the `--body-file` / `--design-file` / `--metadata @file.json` forms for long content.
+
+Then wire dependencies in bulk with newline-delimited JSON:
+
+```bash
+# deps.ndjson — one object per line
+# {"from":"<blocked-id>","to":"<blocker-id>","type":"blocks"}
+bd dep add --file deps.ndjson
+```
+
+And add comments:
+
+```bash
+bd comment "$ID" --file comments/<key>.md
+```
+
+### Idempotency and completion passes
+
+Use **deterministic node keys** derived from identifiers (`impl-api9`, `wiring-web-apiclient`, `verify-seam-evt2`), never random ones. Before writing, query existing beads for the feature and compare titles, so a re-run or a completion pass adds what's missing instead of duplicating.
+
+For a **completion pass** on a partially-beadified feature:
+
+1. `bd query --label proj:<slug> --label ft:<FT-id> --json` to get existing beads and ids.
+2. Map existing beads onto ledger rows; mark which ledger rows are already covered.
+3. Build a graph plan containing only the new beads, using `from_id`/`to_id` in `edges` to attach them to the existing beads.
+4. Backfill what the old beads lack: add the missing `kind:*` label with `bd update`, and post the Background & Intent comment if absent.
+5. Re-run the full Phase 8 validation over the whole feature, not just the new beads.
+
+### Re-beadification
+
+When the user asks to re-beadify a feature, do **not** delete existing beads:
+
+1. Create the new beads first, so references exist before old ones are updated.
+2. For beads not yet started (`open`): update in place if the change is minor, or close with a reason naming the superseding bead.
+3. For beads in progress (`in_progress`): update description, design, and acceptance criteria to match the changed requirements. Do not close active work without user confirmation.
+4. Link old → new with `bd dep add <old-id> <new-id> --type supersedes`.
+
+### Environment note
+
+If `bd` reports "legacy Dolt server workspace detected", ambient `BEADS_DOLT_SERVER_MODE` / `BEADS_DOLT_SERVER_PORT` variables are interfering. Run through a wrapper:
+
+```bash
+env -u BEADS_DOLT_SERVER_MODE -u BEADS_DOLT_SERVER_PORT bd "$@"
+```
+
+### Confirm the write
+
+Report: beads created by kind, dependencies added, comments posted, and anything that failed.
+
+---
+
+## Phase 8: Validate
+
+Run every rule. Report each as ✅ pass or ❌ fail **with the specific offenders**. Do not downgrade a failure to a warning — a failed rule means the Completeness Contract is broken.
+
+```bash
+bd lint
+bd dep cycles
+bd query --label proj:<slug> --label ep:<EP-id> --json > all.json
+bv --robot-plan --label proj:<slug>
+```
+
+| # | Rule | How to check |
+|---|------|--------------|
+| 1 | Every ledger A FR sub-item appears in ≥1 bead's `metadata.frs` | jq over `all.json` |
+| 2 | Every AC maps to ≥1 `kind:verify-*` bead | jq over metadata |
+| 3 | Every TR maps to ≥1 bead; every non-functional TR to a `verify-runtime` bead | jq |
+| 4 | Every persisted ENT has an `ops` migration bead and a fixture named in a `harness` bead | jq + read |
+| 5 | Every API operation has a provider impl, a consumer wiring, and a `verify-seam` bead | ledger B vs. beads |
+| 6 | Every EVT has a publisher bead, a subscriber bead, and a `verify-seam` bead | ledger B vs. beads |
+| 7 | Every in-scope BD edge has ≥1 `kind:wiring` bead | ledger B vs. beads |
+| 8 | Every DF crossing a COMP boundary appears in a `verify-seam` or `verify-journey` bead | ledger B vs. beads |
+| 9 | Every SL has a verify bead covering its ordering constraint | ledger B vs. beads |
+| 10 | Every in-scope UJ and UC has a `verify-journey` bead | ledger C vs. beads |
+| 11 | Every in-scope ART has a build bead and a `verify-artifact` bead | ledger C vs. beads |
+| 12 | Every `stub:*` bead has a linked replacing bead | `bd query --label stub:` |
+| 13 | Each feature has exactly one `kind:gate` bead, blocked by all its siblings | jq over deps |
+| 14 | Each epic has exactly one `kind:gate` bead, blocked by every feature gate | jq over deps |
+| 15 | Every wiring and verify bead's priority ≥ the max priority of what it completes | jq |
+| 16 | Every feature's bead mix is within the sanity band, or the deviation is explained | count by kind |
+| 17 | `bd dep cycles` returns nothing | command |
+| 18 | `bd lint` passes | command |
+| 19 | Every bead has ≥1 comment, and the first is a Background & Intent comment | `bd comments` sample + count |
+| 20 | No bead carries a `test:*` label | `bd query --label test:` empty for this proj |
+| 21 | Every leaf bead has an `estimate` and acceptance criteria containing a runnable command | jq |
+| 22 | `bv --robot-plan` shows a non-empty ready set and no unreachable beads | command |
+
+Then re-state the Completeness Contract and answer each invariant with evidence:
+
+1. **Nothing lost** — N identifiers in ledger A; N represented; M out of scope with reasons
+2. **Nothing unreachable** — N seams in ledger B, all with a live-via bead
+3. **Nothing unverified** — N seams with proving beads, N journeys, N artifacts, N runtime TRs
+4. **Nothing unexplained** — N beads, N Background & Intent comments
+
+If any invariant fails, **fix it before declaring the phase done**: add the missing beads. Do not note the gap and move on.
+
+---
+
+## Phase 9: Handoff
+
+Tell the user:
+
+1. **What was created** — counts by kind, the epic and feature ids
+2. **Where to start** — `bd ready --label proj:<slug>` and the wave-1 bead list
+3. **The demonstration commands** — from the gate beads: what will prove the feature and the epic actually work
+4. **What's still open** — spikes, decisions, stubs, deferred beads, document gaps
+5. **Next skills** — `test-plan` to add unit-test specs and enrich the verification beads; `tech-plan` if harness beads surfaced new tooling decisions; `artifacts` if ledger C was empty
+
+Suggest the working loop:
+
+```bash
+bd ready --label proj:<slug>        # what can be picked up now
+bd show <id>                        # full context, self-contained
+bd close <id>                       # unblocks the next wave
+bv --robot-plan --label proj:<slug> # re-plan after progress
+bv --robot-priority                 # recommended ordering
+```
+
+---
+
+## Interaction with test-plan
+
+beadify and test-plan both write test-related beads. The division of labor:
+
+| | beadify | test-plan |
+|---|---------|-----------|
+| **Owns** | The verification **skeleton** — which seams, journeys, artifacts, and runtime requirements must be proven, plus the harness to prove them in | The test **specification** — cases, inputs, expected outputs, unit-level coverage |
+| **Labels** | `kind:verify-seam`, `kind:verify-journey`, `kind:verify-artifact`, `kind:verify-runtime`, `kind:harness` | `test:unit`, `test:integration`, `test:e2e`, `test:ux` |
+| **Granularity** | One bead per seam / journey / artifact / non-functional TR | Case-level specs attached to beads |
+
+**beadify must never emit a `test:*` label.** test-plan treats any feature that already has a `test:`-labeled bead as planned and skips it — so a stray `test:` label from beadify would silently suppress unit-test planning for the entire feature.
+
+test-plan correspondingly **enriches** beadify's verification beads rather than creating parallel ones: when it finds a `kind:verify-*` bead covering a seam or journey, it appends the case-level specification to that bead and adds the appropriate `test:*` label to it, instead of creating a duplicate.
+
+**Run order: beadify first, then test-plan.** beadify establishes the harness and the integration skeleton; test-plan fills in the cases.
 
 ---
 
 ## Important Constraints
 
-- Your ONLY output is `bd` issues (or interview/review questions when gathering context)
-- Do NOT write code, create implementation plans, or produce any artifact other than `bd` issues
-- Do NOT load all starchitect documents upfront — lazy-load per-feature to conserve context
-- Do NOT create tasks without user review and confirmation
-- Do NOT invent requirements — tasks must trace back to FRs, contracts, and floorplan elements. If coverage is incomplete, flag the gap rather than filling it with assumptions
-- When a feature has already been taskified (feature-type issue exists in `bd`), skip it unless the user explicitly asks to re-taskify
-- **Re-taskification**: when the user asks to re-taskify a feature, do NOT delete existing tasks. Instead:
-  1. Create new tasks first (so references exist before updating old ones)
-  2. For tasks not yet started (`open` status): update them in place if the change is minor, or close them with `close_reason` noting the superseding task (e.g., "Superseded by [new-task-id]")
-  3. For tasks in progress (`in_progress` status): update their description, design, and acceptance criteria to reflect changed requirements. Do not close active work without user confirmation.
-  4. Use `bd dep add [old-task-id] [new-task-id] --type supersedes` to link old → new when replacing tasks
-- Prefer precision over verbosity in task descriptions — the design field carries the detailed pointers, the description carries the narrative
+- **Use maximum reasoning depth.** See the Reasoning Budget section. This is not optional.
+- Your ONLY output is `bd` issues (plus the review questions and ledgers you present in-conversation)
+- Do NOT write code, create implementation plans, or produce any other artifact
+- Do NOT load all starchitect documents upfront — lazy-load per feature to conserve context
+- Do NOT create beads without user review and confirmation (except in autopilot)
+- Do NOT invent requirements — beads must trace to FRs, TRs, contracts, floorplan elements, or artifacts. If coverage is incomplete, flag the gap rather than filling it with assumptions
+- **Never skip the seam ledger.** It is the difference between a plan that produces modules and a plan that produces a working system
+- **Integration work is real work.** Wiring, harness, and verification beads are not overhead; they are the beads that make everything else matter
+- **Scoped beads stay in one COMP; exempt beads must name every COMP they touch.** Both halves matter
+- **No mocks at the seam.** A test that mocks its counterpart verifies nothing about the boundary
+- **Never emit `test:*` labels**
+- **Never run `bd init`** — tell the user to do it
+- **Never write the graph plan into the repository** — it belongs in a scratch directory
+- **One edge per bead pair.** Strength lives in the edge type; nuance lives in comments
+- **Wiring and verification inherit the priority of what they complete.** Never lower
+- **Every bead gets a Background & Intent comment**, specific to that bead
+- **Report failures as failures.** A validation rule that fails is a gap in the plan, not a footnote
